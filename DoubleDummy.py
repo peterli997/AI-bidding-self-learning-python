@@ -62,6 +62,135 @@ for count in range(13):
 RC = RC - handS
 RC2 = RC.copy()
 
+Nindex = np.where(handN == 1)[0]
+Sindex = np.where(handS == 1)[0]
+
+print("S")
+print("C ", end='')
+for j in np.where(Sindex < 13)[0]:
+    if Sindex[j] in range(0, 8):
+        print(Sindex[j] + 2, end='')
+    if Sindex[j] == 8:
+        print("T", end='')
+    if Sindex[j] == 9:
+        print("J", end='')
+    if Sindex[j] == 10:
+        print("Q", end='')
+    if Sindex[j] == 11:
+        print("K", end='')
+    if Sindex[j] == 12:
+        print("A", end='')
+print()
+print("D ", end='')
+for j in np.where(Sindex[np.where(Sindex < 26)[0]] > 12)[0]:
+    if Sindex[j] in range(13, 21):
+        print(Sindex[j] - 11, end='')
+    if Sindex[j] == 21:
+        print("T", end='')
+    if Sindex[j] == 22:
+        print("J", end='')
+    if Sindex[j] == 23:
+        print("Q", end='')
+    if Sindex[j] == 24:
+        print("K", end='')
+    if Sindex[j] == 25:
+        print("A", end='')
+print()
+print("H ", end='')
+for j in np.where(Sindex[np.where(Sindex < 39)[0]] > 25)[0]:
+    if Sindex[j] in range(26, 34):
+        print(Sindex[j] - 24, end='')
+    if Sindex[j] == 34:
+        print("T", end='')
+    if Sindex[j] == 35:
+        print("J", end='')
+    if Sindex[j] == 36:
+        print("Q", end='')
+    if Sindex[j] == 37:
+        print("K", end='')
+    if Sindex[j] == 38:
+        print("A", end='')
+print()
+print("S ", end='')
+for j in np.where(Sindex[np.where(Sindex < 52)[0]] > 38)[0]:
+    if Sindex[j] in range(39, 47):
+        print(Sindex[j]- 37, end='')
+    if Sindex[j] == 47:
+        print("T", end='')
+    if Sindex[j] == 48:
+        print("J", end='')
+    if Sindex[j] == 49:
+        print("Q", end='')
+    if Sindex[j] == 50:
+        print("K", end='')
+    if Sindex[j] == 51:
+        print("A", end='')
+print()
+print()
+
+print("N")
+print("C ", end='')
+for j in np.where(Nindex < 13)[0]:
+    if Nindex[j] in range(0, 8):
+        print(Nindex[j] + 2, end='')
+    if Nindex[j] == 8:
+        print("T", end='')
+    if Nindex[j] == 9:
+        print("J", end='')
+    if Nindex[j] == 10:
+        print("Q", end='')
+    if Nindex[j] == 11:
+        print("K", end='')
+    if Nindex[j] == 12:
+        print("A", end='')
+print()
+print("D ", end='')
+for j in np.where(Nindex[np.where(Nindex < 26)[0]] > 12)[0]:
+    if Nindex[j] in range(13, 21):
+        print(Nindex[j] - 11, end='')
+    if Nindex[j] == 21:
+        print("T", end='')
+    if Nindex[j] == 22:
+        print("J", end='')
+    if Nindex[j] == 23:
+        print("Q", end='')
+    if Nindex[j] == 24:
+        print("K", end='')
+    if Nindex[j] == 25:
+        print("A", end='')
+print()
+print("H ", end='')
+for j in np.where(Nindex[np.where(Nindex < 39)[0]] > 25)[0]:
+    if Nindex[j] in range(26, 34):
+        print(Nindex[j] - 24, end='')
+    if Nindex[j] == 34:
+        print("T", end='')
+    if Nindex[j] == 35:
+        print("J", end='')
+    if Nindex[j] == 36:
+        print("Q", end='')
+    if Nindex[j] == 37:
+        print("K", end='')
+    if Nindex[j] == 38:
+        print("A", end='')
+print()
+print("S ", end='')
+for j in np.where(Nindex[np.where(Nindex < 52)[0]] > 38)[0]:
+    if Nindex[j] in range(39, 47):
+        print(Nindex[j]- 37, end='')
+    if Nindex[j] == 47:
+        print("T", end='')
+    if Nindex[j] == 48:
+        print("J", end='')
+    if Nindex[j] == 49:
+        print("Q", end='')
+    if Nindex[j] == 50:
+        print("K", end='')
+    if Nindex[j] == 51:
+        print("A", end='')
+print()
+print()
+
 count = 0
 for count in range(5):
     RC = RC2
@@ -201,17 +330,32 @@ for count in range(5):
         if Eindex[j] == 51:
             print("A", end='')
     print()
-    play = np.zeros((13, 4))
-    alpha = np.arange(10, 11)
-    alpha = alpha.repeat((13, 4))
+    print()
+    SD = np.array([0, 13, 26, 39, 52])
+    #suit distinguisher
+    play = np.zeros(52)
+    alpha = np.arange(14, 15)
+    # alpha = alpha.repeat((13, 4))
     beta = np.arange(-10, -9)
-    beta = beta.repeat((13, 4))
-    handN_image, handW_image, handS_image, handE_image = handN.copy(), handW.copy(), handS.copy(), handE.copy()
-    player = 2 # N = 1, W = 2, S = 3, E = 4
+    # beta = beta.repeat((13, 4))
+    Nindex_image, Windex_image, Sindex_image, Eindex_image = Nindex.copy(), Windex.copy(), Sindex.copy(), Eindex.copy()
+    player = np.zeros(52)
+    player[0] = 1
+    index_set = [Nindex, Windex, Sindex, Eindex]
+    # N = 0, W = 1, S = 2, E = 3
     trickNS, trickEW = 0, 0
     # Case 1: Trump = NT
-    if count2%4 == 0:
-
+    for count2 in range(52):
+        if count2%4 == 0:
+            for play[count2] in index_set[player[count2]]:
+                continue
+        else:
+            if len(np.where(SD.searchsorted(index_set[player[count2]]) == SD.searchsorted(play[count2 - count2%4]))[0]) == 0:
+                for play[count2] in index_set[player[count2]]:
+                    continue
+            else:
+                for play[count2] in index_set[player[count2]][np.where(SD.searchsorted(index_set[player[count2]]) == SD.searchsorted(play[count2 - count2%4]))[0]]:
+                    continue
     # Case 2：Trump = C
     # Case 3: Trump = D
     # Case 4: Trump = H
