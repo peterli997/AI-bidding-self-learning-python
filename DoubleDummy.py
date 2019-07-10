@@ -346,6 +346,10 @@ for count in range(5):
     trickNS, trickEW = 0, 0
     # Case 1: Trump = NT
     for count2 in range(52):
+        if count2 != 0:
+            player[count2] = player[count2 - 1] + 1
+            if player[count2] == 4:
+                player[count2] = 0
         if count2%4 == 0:
             for play[count2] in index_set[player[count2]]:
                 continue
