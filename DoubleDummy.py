@@ -1,14 +1,15 @@
 import numpy as np
 
 def suitfc(a): # suit function
-    if a in range(13):
+    if 0 <= a and a < 13:
         return 'C'
-    elif a in range(26):
+    elif 13 <= a and a < 26:
         return 'D'
-    elif a in range(39):
+    elif 26 <= a and a < 39:
         return 'H'
     else:
         return 'S'
+
 
 handN = np.zeros(52)
 handW = np.zeros(52)
@@ -272,7 +273,7 @@ for count in range(5):
     print("E")
     print("C ", end='')
     for j in np.where(Eindex < 13)[0]:
-        if Eindex[j] in range(0, 8):
+        if 0 <= Eindex[j] and Eindex[j] < 8:
             print(Eindex[j] + 2, end='')
         if Eindex[j] == 8:
             print("T", end='')
@@ -287,7 +288,7 @@ for count in range(5):
     print()
     print("D ", end='')
     for j in np.where(Eindex[np.where(Eindex < 26)[0]] > 12)[0]:
-        if Eindex[j] in range(13, 21):
+        if 13 <= Eindex[j] and Eindex[j] < 21:
             print(Eindex[j] - 11, end='')
         if Eindex[j] == 21:
             print("T", end='')
@@ -302,7 +303,7 @@ for count in range(5):
     print()
     print("H ", end='')
     for j in np.where(Eindex[np.where(Eindex < 39)[0]] > 25)[0]:
-        if Eindex[j] in range(26, 34):
+        if 26 <= Eindex[j] and Eindex[j] < 34:
             print(Eindex[j] - 24, end='')
         if Eindex[j] == 34:
             print("T", end='')
@@ -317,7 +318,7 @@ for count in range(5):
     print()
     print("S ", end='')
     for j in np.where(Eindex[np.where(Eindex < 52)[0]] > 38)[0]:
-        if Eindex[j] in range(39, 47):
+        if 39 <= Eindex[j] and Eindex[j] < 47:
             print(Eindex[j] - 37, end='')
         if Eindex[j] == 47:
             print("T", end='')
@@ -331,35 +332,75 @@ for count in range(5):
             print("A", end='')
     print()
     print()
-    SD = np.array([0, 13, 26, 39, 52])
+    SD = np.array([-1, 12, 25, 38, 51])
     #suit distinguisher
-    play = np.zeros(52)
-    alpha = np.arange(14, 15)
+    play = np.zeros(52, dtype = int)
+    # alpha = np.arange(14, 15)
     # alpha = alpha.repeat((13, 4))
-    beta = np.arange(-10, -9)
+    # beta = np.arange(-10, -9)
     # beta = beta.repeat((13, 4))
     Nindex_image, Windex_image, Sindex_image, Eindex_image = Nindex.copy(), Windex.copy(), Sindex.copy(), Eindex.copy()
-    player = np.zeros(52)
-    player[0] = 1
-    index_set = [Nindex, Windex, Sindex, Eindex]
+    player = np.zeros(52, dtype = int)
+    turn_winner = 1
     # N = 0, W = 1, S = 2, E = 3
+    count2 = 0
+    PC = [0] * 52
+    # Playable Cards
+    it = [0] * 52
+    # iterations
     trickNS, trickEW = 0, 0
+    index_set = [Nindex, Windex, Sindex, Eindex]
     # Case 1: Trump = NT
-    for count2 in range(52):
-        if count2 != 0:
+    while count2 in range(52):
+        print(count2)
+        index_set = [Nindex, Windex, Sindex, Eindex]
+        print(index_set)
+        if count2 % 4 == 0:
+            player[count2] = turn_winner
+            PC[count2] = index_set[player[count2]]
+        else:
             player[count2] = player[count2 - 1] + 1
             if player[count2] == 4:
                 player[count2] = 0
-        if count2%4 == 0:
-            for play[count2] in index_set[player[count2]]:
-                continue
-        else:
-            if len(np.where(SD.searchsorted(index_set[player[count2]]) == SD.searchsorted(play[count2 - count2%4]))[0]) == 0:
-                for play[count2] in index_set[player[count2]]:
-                    continue
+            if len(np.where(SD.searchsorted(index_set[player[count2]]) == SD.searchsorted(play[count2 - count2 % 4]))[0]) == 0:
+                PC[count2] = index_set[player[count2]]
             else:
-                for play[count2] in index_set[player[count2]][np.where(SD.searchsorted(index_set[player[count2]]) == SD.searchsorted(play[count2 - count2%4]))[0]]:
-                    continue
+                PC[count2] = index_set[player[count2]][np.where(SD.searchsorted(index_set[player[count2]]) == SD.searchsorted(play[count2 - count2 % 4]))[0]]
+        it[count2] = iter(PC[count2])
+        print(PC[count2], player[count2])
+        try:
+            play[count2] = next(it[count2])
+            index_set[player[count2]] = index_set[player[count2]].tolist()
+            index_set[player[count2]].remove(play[count2])
+            index_set[player[count2]] = np.array(index_set[player[count2]])
+            # print(index_set[player[count2]])
+            print(play)
+            if count2 % 4 == 3:
+                turn = [play[count2 - 3]]
+                i = count2 - 2
+                for i in range(count2 - 2, count2 + 1):
+                    if suitfc(play[count2 - 3]) == suitfc(play[i]):
+                        turn.append(play[i])
+                    else:
+                        turn.append(0)
+                turn_player = [player[count2 - 3], player[count2 - 2], player[count2 - 1], player[count2]]
+                turn_winner = turn_player[np.argmax(turn)]
+                # print(turn_winner)
+                if turn_winner == 0 or turn_winner == 2:
+                    trickNS += 1
+                else:
+                    trickEW += 1
+            count2 += 1
+            if count2 == 52:
+                count2 -= 1
+        except StopIteration:
+            play[count2] = 0
+            if count2 != 0:
+                count2 -= 1
+            else:
+                break
+
+
     # Case 2：Trump = C
     # Case 3: Trump = D
     # Case 4: Trump = H
