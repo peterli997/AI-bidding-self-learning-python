@@ -1,7 +1,23 @@
 import numpy as np
 
+INPUT_METHOD = 0  # 0 for console, 1 for file
+INPUT_FILE_NAME = ""  # file name for input
 
-def suitfc(card):  # suit function
+Suit = ['S', 'H', 'D', 'C']
+Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
+"""
+Card code ranges from 0 to 51,
+Order: Higher suits are assigned higher codes. Clubs are assigned 0-12,
+Higher ranks are assigned higher codes. 2 of Club is assigned 0. 
+"""
+
+
+def get_suit(card):  # suit function
+    """
+    Get suit from card code
+    :param card: card code
+    :return: suit of the card, as string
+    """
     if card < 13:
         return 'C'
     elif card < 26:
@@ -12,71 +28,51 @@ def suitfc(card):  # suit function
         return 'S'
 
 
-def print_hand(hand):  # print hand, index list
-    print("C ", end='')
-    for j in np.where(hand < 13)[0]:
-        if hand[j] in range(0, 8):
-            print(hand[j] + 2, end='')
-        if hand[j] == 8:
-            print("T", end='')
-        if hand[j] == 9:
-            print("J", end='')
-        if hand[j] == 10:
-            print("Q", end='')
-        if hand[j] == 11:
-            print("K", end='')
-        if hand[j] == 12:
-            print("A", end='')
-    print()
-    print("D ", end='')
-    for j in np.where(hand[np.where(hand < 26)[0]] > 12)[0]:
-        if hand[j] in range(13, 21):
-            print(hand[j] - 11, end='')
-        if hand[j] == 21:
-            print("T", end='')
-        if hand[j] == 22:
-            print("J", end='')
-        if hand[j] == 23:
-            print("Q", end='')
-        if hand[j] == 24:
-            print("K", end='')
-        if hand[j] == 25:
-            print("A", end='')
-    print()
-    print("H ", end='')
-    for j in np.where(hand[np.where(hand < 39)[0]] > 25)[0]:
-        if hand[j] in range(26, 34):
-            print(hand[j] - 24, end='')
-        if hand[j] == 34:
-            print("T", end='')
-        if hand[j] == 35:
-            print("J", end='')
-        if hand[j] == 36:
-            print("Q", end='')
-        if hand[j] == 37:
-            print("K", end='')
-        if hand[j] == 38:
-            print("A", end='')
-    print()
-    print("S ", end='')
-    for j in np.where(hand[np.where(hand < 52)[0]] > 38)[0]:
-        if hand[j] in range(39, 47):
-            print(hand[j] - 37, end='')
-        if hand[j] == 47:
-            print("T", end='')
-        if hand[j] == 48:
-            print("J", end='')
-        if hand[j] == 49:
-            print("Q", end='')
-        if hand[j] == 50:
-            print("K", end='')
-        if hand[j] == 51:
-            print("A", end='')
-    print()
+def rank_to_string(rank):
+    """
+    Get the corresponding string of card ranks.
+    0 -> "2", ..., 7 -> "9", 8 -> "T", 9 -> "J", 10 -> "Q", 11 -> "K", 12 -> "A"
+    :param rank: an integer representing a card rank, range 0-12, 12 the highest rank.
+    :return: the corresponding string, as shown on real cards
+    """
+    if 0 <= rank <= 8:
+        return str(rank + 2)
+    if rank == 8:
+        return "T"
+    if rank == 9:
+        return "J"
+    if rank == 10:
+        return "Q"
+    if rank == 11:
+        return "K"
+    if rank == 12:
+        return "A"
 
 
-def input_hand(name, hand):  # name: name of hand, hand: place to put the hand
-    for count in range(13):
+def hand_to_string(hand):
+    """
+    Print a hand. Order: S H D C. One suit per line.
+    :param hand: list of card index.
+    """
+    str_list = ["S "]
+    for j in hand[hand > 38]:
+        str_list.append(rank_to_string(hand[j] % 13))
+    str_list.append("\nH")
+    for j in hand[(hand < 39) & (hand > 25)]:
+        str_list.append(rank_to_string(hand[j] % 13))
+    str_list .append("\nD")
+    for j in hand[(hand < 26) & (hand > 12)]:
+        str_list.append(rank_to_string(hand[j] % 13))
+    str_list.append("\nC")
+    for j in hand[hand < 13]:
+        str_list.append(rank_to_string(j))
+    str_list.append("\n")
+    return ''.join(str_list)
+
+
+def input_hand_from_console(name):  # name: name of hand, hand: list of card code
+    output = []
+    for _ in range(13):
         suit = input(name + ", suit (single letter). ")
         while suit not in Suit:
             print("Error. Suit not found.")
@@ -86,51 +82,96 @@ def input_hand(name, hand):  # name: name of hand, hand: place to put the hand
             print("Error. Card not found.")
             card = input(name + ", re-enter card (2 - 10 = value as shown on card, J = 11, Q = 12, K = 13, A = 14). ")
         if suit == 'C':
-            hand[int(card) - 2] = 1
+            output.append(int(card) - 2)
         if suit == 'D':
-            hand[int(card) + 11] = 1
+            output.append(int(card) + 11)
         if suit == 'H':
-            hand[int(card) + 24] = 1
+            output.append(int(card) + 14)
         if suit == 'S':
-            hand[int(card) + 37] = 1
+            output.append(int(card) + 37)
+    return output
+
+def string_to_rank(string):
+    """
+    Inverse of rank_to_string()
+    :param string: string to be parsed
+    :return: an integer in range 0-12
+    """
+    if string == "T":
+        return 8
+    if string == "J":
+        return 9
+    if string == "Q":
+        return 10
+    if string == "K":
+        return 11
+    if string == "A":
+        return 12
+    if 0 <= string <= 8:
+        return str(string + 2)
 
 
-handN = np.zeros(52)
-handW = np.zeros(52)
-handS = np.zeros(52)
-handE = np.zeros(52)
-RC = np.arange(1, 2) # RC for Remaining Cards
-RC = RC.repeat(52)
+def input_hands_from_file(filename, number_of_hands):
+    """
+    Read hands from file. File format: One line per hand, separate suit by space, suit order: S H D C
+    Characters other than 2-9,AKQJT, are ignored
+    Example hand with no Diamonds: AKT76 KQ87 X J543
+    Ranks are not necessarily ordered.
+    Does not check number of cards and suits.
+    :param filename: Name of file containing hands
+    :param number_of_hands: number of hands to be read
+    :return: a list of hands represented by lists of card index.
+    """
+    hands = []
+    with open(filename) as file:
+        hand_count = 0
+        for line_of_hand in file:
+            if hand_count >= number_of_hands:
+                break
+            curr_hand = []
+            suit_offset = 0
+            separated_line = line_of_hand.split(" ")
+            for suit in separated_line:
+                for rank in suit:
+                    curr_hand.append(string_to_rank(rank) + suit_offset)
+                suit_offset += 13
+            hands.append(curr_hand)
+            hand_count += 1
+    return hands
 
-Suit = ['S', 'H', 'D', 'C']
-Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
 
-input_hand("North", handN)
-RC = RC - handN
-input_hand("South", handS)
-RC = RC - handS
+RC = set(range(52))
+if INPUT_METHOD == 0:
+    Nindex = input_hand_from_console("North")
+    Sindex = input_hand_from_console("South")
+elif INPUT_METHOD == 1:
+    hands = input_hands_from_file(INPUT_FILE_NAME, 2)
+    Nindex = np.array(hands[0])
+    Sindex = np.array(hands[1])
+else:
+    Nindex = []
+    Sindex = []
+RC = RC - set(Nindex)
+RC = RC - set(Sindex)
 RC2 = RC.copy()
 
-Nindex = np.where(handN == 1)[0]
-Sindex = np.where(handS == 1)[0]
-
 print("S")
-print_hand(Sindex)
+print(hand_to_string(Sindex))
 print("N")
-print_hand(Nindex)
+print(hand_to_string(Nindex))
 
 for count in range(5):
     RC = RC2
     handW = np.zeros(52)
     handE = np.zeros(52)
     print(count + 1)
-    Windex = np.random.choice(a = np.nonzero(RC)[0], size = 13, replace = False)
+    Windex = np.random.choice(a=np.nonzero(RC)[0], size=13, replace=False)
     Windex.sort()
     j = 0
     for j in range(13):
         handW[Windex[j]] = 1
     print("W")
-    print_hand(Windex)
+    print(hand_to_string(Windex))
     RC = RC - handW
     Eindex = np.nonzero(RC)[0]
 
@@ -138,7 +179,7 @@ for count in range(5):
         handE[Eindex[j]] = 1
     print()
     print("E")
-    print_hand(Eindex)
+    print(hand_to_string(Eindex))
 
     play = np.zeros((13, 4))
     alpha = np.arange(10, 11)
