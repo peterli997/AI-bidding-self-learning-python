@@ -354,27 +354,44 @@ for count in range(5):
     while count2 in range(52):
         print(count2)
         index_set = [Nindex, Windex, Sindex, Eindex]
-        print(index_set)
+        # print(index_set)
+        print(Nindex, Windex, Sindex, Eindex)
         if count2 % 4 == 0:
             player[count2] = turn_winner
             PC[count2] = index_set[player[count2]]
         else:
             player[count2] = player[count2 - 1] + 1
-            if player[count2] == 4:
-                player[count2] = 0
+            player[count2] = player[count2] % 4
             if len(np.where(SD.searchsorted(index_set[player[count2]]) == SD.searchsorted(play[count2 - count2 % 4]))[0]) == 0:
                 PC[count2] = index_set[player[count2]]
             else:
                 PC[count2] = index_set[player[count2]][np.where(SD.searchsorted(index_set[player[count2]]) == SD.searchsorted(play[count2 - count2 % 4]))[0]]
         it[count2] = iter(PC[count2])
-        print(PC[count2], player[count2])
+        # print(PC[count2], player[count2])
         try:
             play[count2] = next(it[count2])
-            index_set[player[count2]] = index_set[player[count2]].tolist()
-            index_set[player[count2]].remove(play[count2])
-            index_set[player[count2]] = np.array(index_set[player[count2]])
+            if player[count2] == 0:
+                Nindex = Nindex.tolist()
+                Nindex.remove(play[count2])
+                Nindex = np.array(Nindex)
+            elif player[count2] == 1:
+                Windex = Windex.tolist()
+                Windex.remove(play[count2])
+                Windex = np.array(Windex)
+            elif player[count2] == 2:
+                Sindex = Sindex.tolist()
+                Sindex.remove(play[count2])
+                Sindex = np.array(Sindex)
+            else:
+                Eindex = Eindex.tolist()
+                Eindex.remove(play[count2])
+                Eindex = np.array(Eindex)
+            # index_set[player[count2]] = index_set[player[count2]].tolist()
+            # index_set[player[count2]].remove(play[count2])
+            # index_set[player[count2]] = np.array(index_set[player[count2]])
+            # print(Windex, index_set[player[count2]])
             # print(index_set[player[count2]])
-            print(play)
+            # print(play)
             if count2 % 4 == 3:
                 turn = [play[count2 - 3]]
                 i = count2 - 2
@@ -394,8 +411,28 @@ for count in range(5):
             if count2 == 52:
                 count2 -= 1
         except StopIteration:
-            play[count2] = 0
             if count2 != 0:
+                if player[count2] == 0:
+                    Nindex = Nindex.tolist()
+                    Nindex.append(play[count2])
+                    Nindex = np.array(Nindex)
+                    Nindex.sort()
+                elif player[count2] == 1:
+                    Windex = Windex.tolist()
+                    Windex.append(play[count2])
+                    Windex = np.array(Windex)
+                    Windex.sort()
+                elif player[count2] == 2:
+                    Sindex = Sindex.tolist()
+                    Sindex.append(play[count2])
+                    Sindex = np.array(Sindex)
+                    Sindex.sort()
+                else:
+                    Eindex = Eindex.tolist()
+                    Eindex.append(play[count2])
+                    Eindex = np.array(Eindex)
+                    Eindex.sort()
+                play[count2] = 0
                 count2 -= 1
             else:
                 break
