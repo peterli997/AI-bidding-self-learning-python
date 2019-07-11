@@ -343,7 +343,7 @@ for count in range(5):
     # beta = beta.repeat((13, 4))
     Nindex_image, Windex_image, Sindex_image, Eindex_image = Nindex.copy(), Windex.copy(), Sindex.copy(), Eindex.copy()
     player = np.zeros(52, dtype = int)
-    turn_winner = np.zeros(13, dtype = int)
+    turn_winner = np.zeros(14, dtype = int)
     turn_winner[0] = 1
     # N = 0, W = 1, S = 2, E = 3
     count2 = 0
@@ -457,7 +457,7 @@ for count in range(5):
                         else:
                             turn.append(0)
                     turn_player = [player[count2 - 3], player[count2 - 2], player[count2 - 1], player[count2]]
-                    turn_winner[count2//4] = turn_player[np.argmax(turn)]
+                    turn_winner[count2//4 + 1] = turn_player[np.argmax(turn)]
                     # print(turn_winner)
                     if turn_winner[count2//4] == 0 or turn_winner[count2//4] == 2:
                         trickNS += 1
