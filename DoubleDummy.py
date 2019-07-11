@@ -198,8 +198,10 @@ for count in range(5):
     handW = np.zeros(52)
     handE = np.zeros(52)
     print(count + 1)
-    Windex = np.random.choice(a = np.nonzero(RC)[0], size = 13, replace = False)
-    Windex.sort()
+    # Windex = np.random.choice(a=np.nonzero(RC)[0], size=13, replace=False)
+    # Windex.sort()
+    Windex = [26, 30, 32, 36, 37, 38, 39, 40, 43, 45, 48, 49, 51]
+    Windex = np.array(Windex)
     j = 0
     for j in range(13):
         handW[Windex[j]] = 1
@@ -341,7 +343,8 @@ for count in range(5):
     # beta = beta.repeat((13, 4))
     Nindex_image, Windex_image, Sindex_image, Eindex_image = Nindex.copy(), Windex.copy(), Sindex.copy(), Eindex.copy()
     player = np.zeros(52, dtype = int)
-    turn_winner = 1
+    turn_winner = np.zeros(13, dtype = int)
+    turn_winner[0] = 1
     # N = 0, W = 1, S = 2, E = 3
     count2 = 0
     PC = [0] * 52
@@ -354,12 +357,12 @@ for count in range(5):
     # Case 1: Trump = NT
     while count2 in range(52):
         while j[count2] in range(53):
-            print(count2, j[count2], play[count2])
+            # print(count2, j[count2], play[count2])
             index_set = [Nindex, Windex, Sindex, Eindex]
             # print(index_set)
             # print(Nindex, Windex, Sindex, Eindex)
             if count2 % 4 == 0:
-                player[count2] = turn_winner
+                player[count2] = turn_winner[count2//4]
                 PC[count2] = index_set[player[count2]]
             else:
                 player[count2] = player[count2 - 1] + 1
@@ -375,6 +378,7 @@ for count in range(5):
                 else:
                     # print(play[count2], bool(play[count2]))
                     if play[count2] != -1:
+                        # print(player[count2], 1)
                         if player[count2] == 0:
                             Nindex = Nindex.tolist()
                             Nindex.append(play[count2])
@@ -395,7 +399,7 @@ for count in range(5):
                             Eindex.append(play[count2])
                             Eindex = np.array(Eindex)
                             Eindex.sort()
-                        print(Nindex, Windex, Sindex, Eindex)
+                        # print(Nindex, Windex, Sindex, Eindex, 1)
                         play[count2] = -1
                     j[count2] = 0
                     count2 -= 1
@@ -403,6 +407,7 @@ for count in range(5):
                 j[count2] += 1
             else:
                 if play[count2] and play[count2] != -1:
+                    # print(player[count2], 2)
                     if player[count2] == 0:
                         Nindex = Nindex.tolist()
                         Nindex.append(play[count2])
@@ -423,8 +428,9 @@ for count in range(5):
                         Eindex.append(play[count2])
                         Eindex = np.array(Eindex)
                         Eindex.sort()
-                    print(Nindex, Windex, Sindex, Eindex)
+                    # print(Nindex, Windex, Sindex, Eindex, 2)
                 play[count2] = j[count2]
+                # print(player[count2], 3)
                 if player[count2] == 0:
                     Nindex = Nindex.tolist()
                     Nindex.remove(play[count2])
@@ -441,7 +447,7 @@ for count in range(5):
                     Eindex = Eindex.tolist()
                     Eindex.remove(play[count2])
                     Eindex = np.array(Eindex, dtype = int)
-                print(Nindex, Windex, Sindex, Eindex)
+                # print(Nindex, Windex, Sindex, Eindex, 3)
                 if count2 % 4 == 3:
                     turn = [play[count2 - 3]]
                     i = count2 - 2
@@ -451,9 +457,9 @@ for count in range(5):
                         else:
                             turn.append(0)
                     turn_player = [player[count2 - 3], player[count2 - 2], player[count2 - 1], player[count2]]
-                    turn_winner = turn_player[np.argmax(turn)]
+                    turn_winner[count2//4] = turn_player[np.argmax(turn)]
                     # print(turn_winner)
-                    if turn_winner == 0 or turn_winner == 2:
+                    if turn_winner[count2//4] == 0 or turn_winner[count2//4] == 2:
                         trickNS += 1
                     else:
                         trickEW += 1
@@ -461,6 +467,7 @@ for count in range(5):
                 if count2 == 52:
                     print(play)
                     count2 -= 1
+                    # print(player[count2], 4)
                     if player[count2] == 0:
                         Nindex = Nindex.tolist()
                         Nindex.append(play[count2])
@@ -481,7 +488,7 @@ for count in range(5):
                         Eindex.append(play[count2])
                         Eindex = np.array(Eindex, dtype = int)
                         Eindex.sort()
-                    print(Nindex, Windex, Sindex, Eindex)
+                    # print(Nindex, Windex, Sindex, Eindex, 4)
                     play[count2] = -1
                     j[count2] += 1
         count2 = 52
