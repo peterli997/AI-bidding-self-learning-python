@@ -1,5 +1,38 @@
 import numpy as np
 
+
+def MAX_VALUE(state, alpha, beta):
+    if len(state[0]) + len(state[1]) + len(state[2]) + len(state[3]) == 0:
+        return 0
+    else:
+        for k in state[0]:
+            s = state.copy()
+            s[0] = s[0].tolist()
+            s[0].remove(k)
+            s[0] = np.array(s[0])
+            alpha = max(alpha, MIN_VALUE(s, alpha, beta))
+        if alpha >= beta:
+            return beta
+        else:
+            return alpha
+
+
+def MIN_VALUE(state, alpha, beta):
+    if len(state[0]) + len(state[1]) + len(state[2]) + len(state[3]) == 0:
+        return 0
+    else:
+        for k in state[0]:
+            s = state.copy()
+            s[0] = s[0].tolist()
+            s[0].remove(k)
+            s[0] = np.array(s[0])
+            beta = min(beta, MAX_VALUE(s, alpha, beta))
+        if alpha >= beta:
+            return alpha
+        else:
+            return beta
+
+
 def suitfc(a): # suit function
     if 0 <= a and a < 13:
         return 'C'
@@ -15,7 +48,8 @@ handN = np.zeros(52)
 handW = np.zeros(52)
 handS = np.zeros(52)
 handE = np.zeros(52)
-RC = np.arange(1, 2) # RC for Remaining Cards
+RC = np.arange(1, 2)
+# RC for Remaining Cards
 RC = RC.repeat(52)
 
 count = 0
@@ -342,19 +376,18 @@ for count in range(5):
     # beta = np.arange(-10, -9)
     # beta = beta.repeat((13, 4))
     Nindex_image, Windex_image, Sindex_image, Eindex_image = Nindex.copy(), Windex.copy(), Sindex.copy(), Eindex.copy()
-    player = np.zeros(52, dtype = int)
-    turn_winner = np.zeros(14, dtype = int)
+    player = np.zeros(52, dtype=int)
+    turn_winner = np.zeros(14, dtype=int)
     turn_winner[0] = 1
     # N = 0, W = 1, S = 2, E = 3
     count2 = 0
     PC = [0] * 52
     # Playable Cards
-    # it = [0] * 52
-    # iterations
     trickNS, trickEW = 0, 0
     index_set = [Nindex, Windex, Sindex, Eindex]
-    j = np.zeros(52, dtype = int)
+    j = np.zeros(52, dtype=int)
     # Case 1: Trump = NT
+    print(MAX_VALUE(state=[Nindex, Windex, Sindex, Eindex], alpha=-np.infty, beta=np.infty))
     while count2 in range(52):
         while j[count2] in range(53):
             # print(count2, j[count2], play[count2])
@@ -434,19 +467,19 @@ for count in range(5):
                 if player[count2] == 0:
                     Nindex = Nindex.tolist()
                     Nindex.remove(play[count2])
-                    Nindex = np.array(Nindex, dtype = int)
+                    Nindex = np.array(Nindex, dtype=int)
                 elif player[count2] == 1:
                     Windex = Windex.tolist()
                     Windex.remove(play[count2])
-                    Windex = np.array(Windex, dtype = int)
+                    Windex = np.array(Windex, dtype=int)
                 elif player[count2] == 2:
                     Sindex = Sindex.tolist()
                     Sindex.remove(play[count2])
-                    Sindex = np.array(Sindex, dtype = int)
+                    Sindex = np.array(Sindex, dtype=int)
                 else:
                     Eindex = Eindex.tolist()
                     Eindex.remove(play[count2])
-                    Eindex = np.array(Eindex, dtype = int)
+                    Eindex = np.array(Eindex, dtype=int)
                 # print(Nindex, Windex, Sindex, Eindex, 3)
                 if count2 % 4 == 3:
                     turn = [play[count2 - 3]]
@@ -471,50 +504,27 @@ for count in range(5):
                     if player[count2] == 0:
                         Nindex = Nindex.tolist()
                         Nindex.append(play[count2])
-                        Nindex = np.array(Nindex, dtype = int)
+                        Nindex = np.array(Nindex, dtype=int)
                         Nindex.sort()
                     elif player[count2] == 1:
                         Windex = Windex.tolist()
                         Windex.append(play[count2])
-                        Windex = np.array(Windex, dtype = int)
+                        Windex = np.array(Windex, dtype=int)
                         Windex.sort()
                     elif player[count2] == 2:
                         Sindex = Sindex.tolist()
                         Sindex.append(play[count2])
-                        Sindex = np.array(Sindex, dtype = int)
+                        Sindex = np.array(Sindex, dtype=int)
                         Sindex.sort()
                     else:
                         Eindex = Eindex.tolist()
                         Eindex.append(play[count2])
-                        Eindex = np.array(Eindex, dtype = int)
+                        Eindex = np.array(Eindex, dtype=int)
                         Eindex.sort()
                     # print(Nindex, Windex, Sindex, Eindex, 4)
                     play[count2] = -1
                     j[count2] += 1
-        count2 = 52
-        # it[count2] = iter(PC[count2])
-        # print(PC[count2], player[count2])
-        # try:
-        # for play[count2] in PC[count2]:
-            # play[count2] = next(it[count2])
-
-            # index_set[player[count2]] = index_set[player[count2]].tolist()
-            # index_set[player[count2]].remove(play[count2])
-            # index_set[player[count2]] = np.array(index_set[player[count2]])
-            # print(Windex, index_set[player[count2]])
-            # print(index_set[player[count2]])
-            # print(play)
-
-            # count2 += 1
-            # if count2 == 52:
-                # count2 -= 1
-        # except StopIteration:
-        # if count2 != 0:
-
-            # count2 -= 1
-        # else:
-            # break
-
+        break
     # Case 2：Trump = C
     # Case 3: Trump = D
     # Case 4: Trump = H
