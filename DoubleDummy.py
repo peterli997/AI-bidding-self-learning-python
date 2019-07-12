@@ -127,17 +127,7 @@ def input_hand(name, hand):  # name: name of hand, hand: place to put the hand
             hand[int(card) + 37] = 1
 
 
-handN = np.zeros(52)
-handW = np.zeros(52)
-handS = np.zeros(52)
-handE = np.zeros(52)
-RC = np.arange(1, 2)
-# RC for Remaining Cards
-RC = RC.repeat(52)
 
-count = 0
-Suit = ['S', 'H', 'D', 'C']
-Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
 
 handN = np.zeros(52)
 handW = np.zeros(52)
