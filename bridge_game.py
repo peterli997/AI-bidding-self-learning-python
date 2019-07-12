@@ -1,7 +1,7 @@
 import numpy as np
-Suit = ['S', 'H', 'D', 'C']
+Suit = ['C', 'D', 'H', 'S']
 Rank = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-Position = ['N','W','S','E']
+Position = ['N', 'W', 'S', 'E']
 """
 Hands: set of cards
 Cards: (suit, rank)
@@ -12,9 +12,11 @@ suit,trump: C:1, D:2, H:3, S:4, NT:5
 rank: 2-9: 0-7, T:8, J:9, Q:10, K:11, A:12
 """
 BID_PASS = (0,)
-CONTRACT_PASS = ((0,),0)
+CONTRACT_PASS = ((0,), 0)
 BID_DOUBLE = (-1,)
 BID_REDOUBLE = (-2,)
+BID_INVALID = (-3,)
+CONTRACT_INVALID = (BID_INVALID, -3)
 
 
 class BridgeGame:
@@ -31,7 +33,7 @@ class BridgeGame:
         self.vulnerability = -1
         self.hands = []                      # order: NWSE
         self.largest_bid = BID_PASS
-        self.last_bidder = -1                # 0-3 for NWSE
+        self.last_bidder = -1                # index of last normal bid
         self.NSTricks = 0
 
     def create_random_board(self):
@@ -40,9 +42,14 @@ class BridgeGame:
     def get_stage(self):
         return self.stage
 
-    @staticmethod
-    def create_random_board():
-        pass
+    def bid(self, new_bid):
+        assert self.stage == "Bidding", "should not have finished bidding"
+
+        if not self.is_valid_bid(self.bid_history, new_bid, self.largest_bid,
+                                 self.last_bidder):
+            return BID_INVALID
+
+
 
     @staticmethod
     def calculate_score(contract, vulnerability, result):  # TODO: implement this
@@ -60,31 +67,37 @@ class BridgeGame:
 
     @staticmethod
     def is_greater_bid(bid0, bid1):
+        assert bid0 != BID_DOUBLE and bid0 != BID_REDOUBLE, "Can not compare doubles or redoubles"
+        assert bid1 != BID_DOUBLE and bid1 != BID_REDOUBLE, "Can not compare doubles or redoubles."
+
         if bid0[0] == bid1[0]:
-            return bid0[0] > bid1[0]
-        return bid0[1] > bid1[1]
+            return bid0[1] > bid1[1]
+        return bid0[0] > bid1[0]
 
     @staticmethod
-    def validate_bid(bid_history, new_bid, largest_bid, team_bid):
+    def is_valid_bid(bid_history, new_bid, largest_bid, largest_bid_index):
         """
         Check if a new bid is valid
         :param bid_history: history of bids
         :param new_bid: the new bid to be checked
         :param largest_bid: largest normal bid so far
-        :param team_bid: if the largest normal bid is bid by a teammate
+        :param largest_bid_index: index of the largest normal bid
         :return: if the new bid is valid
         """
+        if BridgeGame.is_done_bidding(bid_history):
+            return False
         if new_bid == BID_PASS:  # passing bid
             return True
         if not bid_history:
             return True if new_bid[0] > 0 else False
         if new_bid == BID_REDOUBLE:  # redouble
-            if team_bid != 1:
+            if (len(bid_history) - largest_bid_index) % 2 != 0:
                 return False
-            return bid_history[-1] == BID_DOUBLE or (bid_history[-1] == BID_PASS == bid_history[-2] == BID_PASS
+            return bid_history[-1] == BID_DOUBLE or (len(bid_history) >= 4
+                                                     and bid_history[-1] == BID_PASS == bid_history[-2] == BID_PASS
                                                      and bid_history[-3] == BID_DOUBLE)
         if new_bid == BID_DOUBLE:  # double
-            if team_bid != 0:
+            if (len(bid_history) - largest_bid_index) % 2 != 1:
                 return False
             return bid_history[-1][0] > 0 or (bid_history[-1] == BID_PASS == bid_history[-2] == BID_PASS
                                               and bid_history[-3][0] > 0)
@@ -101,9 +114,8 @@ class BridgeGame:
         return len(play_history) == 52
 
     @staticmethod
-    def get_contract(bid_history):
-        assert len(bid_history >= 3), "Need at least 3 bids"
-        assert bid_history[-1] == bid_history[-2] == bid_history[-3] == BID_PASS, "Need 3 PASS at the end of bidding"
+    def get_contract(bid_history, last_normal_bid):
+        assert BridgeGame.is_done_bidding(bid_history), "Need to be done bidding"
 
         if len(bid_history) == 3:
             return CONTRACT_PASS
@@ -111,10 +123,7 @@ class BridgeGame:
         if bid_history[-4][0] > 0:
             return bid_history[-4], 0
         else:
-            for bid in reversed(bid_history):
-                if bid[0] > 0:
-                    return bid, bid_history[-4][0]
-        assert False, "Need at least one normal bid."
+            return last_normal_bid, bid_history[-4][0]
 
     # def get_result():
     #
