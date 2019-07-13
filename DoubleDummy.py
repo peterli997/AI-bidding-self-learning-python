@@ -1,36 +1,148 @@
 import numpy as np
 
 
-def MAX_VALUE(state, alpha, beta):
-    if len(state[0]) + len(state[1]) + len(state[2]) + len(state[3]) == 0:
-        return 0
+def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
+    global play
+    global card_holder_dict
+    m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
+    l = (52 - m) // 4
+    l *= 4
+    if m == 0:
+        h = [play[48], play[49], play[50], play[51]]
+        if card_holder_dict[np.max(play[np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))[0]])] % 2 == 0:
+            NS += 1
+        return NS
     else:
-        for k in state[0]:
-            s = state.copy()
-            s[0] = s[0].tolist()
-            s[0].remove(k)
-            s[0] = np.array(s[0])
-            alpha = max(alpha, MIN_VALUE(s, alpha, beta))
-        if alpha >= beta:
-            return beta
+        if m % 4 == 0:
+            playable_cards = set(state[0])
         else:
-            return alpha
+            first_card = play[l]
+            if len(np.where(suit_distinguisher.searchsorted(state[0]) == suit_distinguisher.searchsorted(first_card))[0]) == 0:
+                playable_cards = set(state[0])
+            else:
+                playable_cards = set(state[0][np.where(suit_distinguisher.searchsorted(state[0]) == suit_distinguisher.searchsorted(first_card))[0]])
+        for k in playable_cards:
+            if k - 1 not in playable_cards:
+                s = state.copy()
+                t = s[0]
+                play[52 - m] = k
+                t = t.tolist()
+                t.remove(k)
+                t = np.array(t)
+                flag = False
+                if m % 4 != 1:
+                    s = [s[1], s[2], s[3], t]
+                else:
+                    g = [play[l]]
+                    for i in range(l + 1, l + 4):
+                        if suitfc(play[i]) == suitfc(play[l]):
+                            g.append(play[i])
+                        else:
+                            g.append(0)
+                    winning_card = np.max(g)
+                    winner = np.argmax(g)
+                    if card_holder_dict[winning_card] % 2 == 0:
+                        flag = True
+                        NS += 1
+                    else:
+                        EW += 1
+                    if NS > alpha:
+                        alpha = NS
+                        if alpha >= beta:
+                            return alpha
+                    if EW < beta:
+                        beta = EW
+                        if alpha >= beta:
+                            return alpha
+                    # print(alpha, beta, "trick")
+                    if winner == 0:
+                        s = [s[1], s[2], s[3], t]
+                    elif winner == 1:
+                        s = [s[2], s[3], t, s[1]]
+                    elif winner == 2:
+                        s = [s[3], t, s[1], s[2]]
+                    else:
+                        s = [t, s[1], s[2], s[3]]
+                    s = np.array(s)
+                if flag:
+                    alpha = max(alpha, MAX_VALUE(s, alpha, beta, NS, EW))
+                else:
+                    alpha = max(alpha, MIN_VALUE(s, alpha, beta, NS, EW))
+                print(alpha, beta)
+                if alpha >= beta:
+                    return beta
+        return alpha
 
 
-def MIN_VALUE(state, alpha, beta):
-    if len(state[0]) + len(state[1]) + len(state[2]) + len(state[3]) == 0:
-        return 0
+def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
+    global play
+    global card_holder_dict
+    m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
+    l = (52 - m) // 4
+    l *= 4
+    if m == 0:
+        return EW
     else:
-        for k in state[0]:
-            s = state.copy()
-            s[0] = s[0].tolist()
-            s[0].remove(k)
-            s[0] = np.array(s[0])
-            beta = min(beta, MAX_VALUE(s, alpha, beta))
-        if alpha >= beta:
-            return alpha
+        if m % 4 == 0:
+            playable_cards = set(state[0])
         else:
-            return beta
+            first_card = play[l]
+            if len(np.where(suit_distinguisher.searchsorted(state[0]) == suit_distinguisher.searchsorted(first_card))[0]) == 0:
+                playable_cards = set(state[0])
+            else:
+                playable_cards = set(state[0][np.where(suit_distinguisher.searchsorted(state[0]) == suit_distinguisher.searchsorted(first_card))[0]])
+        for k in playable_cards:
+            if k % 13 == 0 or k - 1 not in playable_cards:
+                s = state.copy()
+                t = s[0]
+                play[52 - m] = k
+                t = t.tolist()
+                t.remove(k)
+                t = np.array(t)
+                flag = False
+                if m % 4 != 1:
+                    s = [s[1], s[2], s[3], t]
+                else:
+                    g = [play[l]]
+                    for i in range(l + 1, l + 4):
+                        if suitfc(play[i]) == suitfc(play[l]):
+                            g.append(play[i])
+                        else:
+                            g.append(0)
+                    winning_card = np.max(g)
+                    winner = np.argmax(g)
+                    if card_holder_dict[winning_card] % 2 == 0:
+                        flag = True
+                        NS += 1
+                    else:
+                        EW += 1
+                    if NS > alpha:
+                        alpha = NS
+                        if alpha >= beta:
+                            return beta
+                    if EW < beta:
+                        beta = EW
+                        if alpha >= beta:
+                            return beta
+                    # print(alpha, beta, "trick")
+                    if winner == 0:
+                        s = [s[1], s[2], s[3], t]
+                    elif winner == 1:
+                        s = [s[2], s[3], t, s[1]]
+                    elif winner == 2:
+                        s = [s[3], t, s[1], s[2]]
+                    else:
+                        s = [t, s[1], s[2], s[3]]
+                    s = np.array(s)
+                if flag:
+                    beta = min(beta, MAX_VALUE(s, alpha, beta, NS, EW))
+                else:
+                    beta = min(beta, MIN_VALUE(s, alpha, beta, NS, EW))
+                print(alpha, beta)
+                if alpha >= beta:
+                    return alpha
+        return beta
+
 
 def suitfc(card):  # suit function
     if card < 13:
@@ -41,6 +153,7 @@ def suitfc(card):  # suit function
         return 'H'
     else:
         return 'S'
+
 
 def print_hand(hand):  # print hand, index list
     print("C ", end='')
@@ -103,6 +216,7 @@ def print_hand(hand):  # print hand, index list
         if hand[j] == 51:
             print("A", end='')
     print()
+    print()
 
 
 def input_hand(name, hand):  # name: name of hand, hand: place to put the hand
@@ -143,7 +257,7 @@ handN = np.zeros(52)
 handW = np.zeros(52)
 handS = np.zeros(52)
 handE = np.zeros(52)
-RC = np.arange(1, 2) # RC for Remaining Cards
+RC = np.arange(1, 2)  # RC for Remaining Cards
 RC = RC.repeat(52)
 
 Suit = ['S', 'H', 'D', 'C']
@@ -168,10 +282,9 @@ for count in range(5):
     handW = np.zeros(52)
     handE = np.zeros(52)
     print(count + 1)
-    # Windex = np.random.choice(a=np.nonzero(RC)[0], size=13, replace=False)
-    # Windex.sort()
-    Windex = [26, 30, 32, 36, 37, 38, 39, 40, 43, 45, 48, 49, 51]
-    Windex = np.array(Windex)
+    Windex = np.random.choice(a=np.nonzero(RC)[0], size=13, replace=False)
+    Windex.sort()
+    # Windex = np.array([26, 30, 32, 36, 37, 38, 39, 40, 43, 45, 48, 49, 51])
     for j in range(13):
         handW[Windex[j]] = 1
     print("W")
@@ -180,12 +293,22 @@ for count in range(5):
     Eindex = np.nonzero(RC)[0]
     for j in range(13):
         handE[Eindex[j]] = 1
-    print()
     print("E")
     print_hand(Eindex)
-    SD = np.array([-1, 12, 25, 38, 51])
+    card_holder = np.zeros(52, dtype=int)
+    card_rank = np.arange(52)
+    for j in Nindex:
+        card_holder[j] = 0
+    for j in Windex:
+        card_holder[j] = 1
+    for j in Sindex:
+        card_holder[j] = 2
+    for j in Eindex:
+        card_holder[j] = 3
+    card_holder_dict = dict(zip(card_rank, card_holder))
+    suit_distinguisher = np.array([-1, 12, 25, 38, 51])
     #suit distinguisher
-    play = np.zeros(52, dtype = int)
+    play = [-1] * 52
     # alpha = np.arange(14, 15)
     # alpha = alpha.repeat((13, 4))
     # beta = np.arange(-10, -9)
@@ -195,15 +318,15 @@ for count in range(5):
     turn_winner = np.zeros(14, dtype=int)
     turn_winner[0] = 1
     # N = 0, W = 1, S = 2, E = 3
-    count2 = 0
-    PC = [0] * 52
+    playable_cards = [0] * 52
     # Playable Cards
     trickNS, trickEW = 0, 0
     index_set = [Nindex, Windex, Sindex, Eindex]
     j = np.zeros(52, dtype=int)
     # Case 1: Trump = NT
-    print(MAX_VALUE(state=[Nindex, Windex, Sindex, Eindex], alpha=-np.infty, beta=np.infty))
+    print(MAX_VALUE(state=[Windex, Sindex, Eindex, Nindex]))
     while count2 in range(52):
+        break
         while j[count2] in range(53):
             # print(count2, j[count2], play[count2])
             index_set = [Nindex, Windex, Sindex, Eindex]
@@ -211,15 +334,14 @@ for count in range(5):
             # print(Nindex, Windex, Sindex, Eindex)
             if count2 % 4 == 0:
                 player[count2] = turn_winner[count2//4]
-                PC[count2] = index_set[player[count2]]
+                playable_cards[count2] = index_set[player[count2]]
             else:
                 player[count2] = player[count2 - 1] + 1
                 player[count2] = player[count2] % 4
-                if len(np.where(SD.searchsorted(index_set[player[count2]]) == SD.searchsorted(play[count2 - count2 % 4]))[0]) == 0:
-                    PC[count2] = index_set[player[count2]]
+                if len(np.where(suit_distinguisher.searchsorted(index_set[player[count2]]) == suit_distinguisher.searchsorted(play[count2 - count2 % 4]))[0]) == 0:
+                    playable_cards[count2] = index_set[player[count2]]
                 else:
-                    PC[count2] = index_set[player[count2]][np.where(SD.searchsorted(index_set[player[count2]]) == SD.searchsorted(play[count2 - count2 % 4]))[0]]
-
+                    playable_cards[count2] = index_set[player[count2]][np.where(suit_distinguisher.searchsorted(index_set[player[count2]]) == suit_distinguisher.searchsorted(play[count2 - count2 % 4]))[0]]
             if j[count2] == 52:
                 if count2 == 0:
                     j[count2] = 53
@@ -251,7 +373,7 @@ for count in range(5):
                         play[count2] = -1
                     j[count2] = 0
                     count2 -= 1
-            elif j[count2] not in PC[count2]:
+            elif j[count2] not in playable_cards[count2]:
                 j[count2] += 1
             else:
                 if play[count2] and play[count2] != -1:
