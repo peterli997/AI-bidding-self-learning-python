@@ -11,12 +11,33 @@ doubling: -1 for X, -2 for XX, 0 for PASS
 suit,trump: C:1, D:2, H:3, S:4, NT:5
 rank: 2-9: 0-7, T:8, J:9, Q:10, K:11, A:12
 """
+BID_1C = (1, 1)
+BID_2C = (2, 1)
+BID_1D = (1, 2)
+BID_1H = (1, 3)
+BID_2NT = (2, 5)
+BID_3D = (3, 2)
+BID_4D = (4, 2)
+BID_7NT = (7, 5)
 BID_PASS = (0,)
 CONTRACT_PASS = ((0,), 0)
 BID_DOUBLE = (-1,)
 BID_REDOUBLE = (-2,)
 BID_INVALID = (-3,)
 CONTRACT_INVALID = (BID_INVALID, -3)
+PENALTY_DOUBLE = -1
+PENALTY_REDOUBLE = -2
+PENALTY_PASS = 0
+STAGE_BIDDING = 0
+STAGE_PLAYING = 1
+POS_N = 0
+POS_W = 1
+POS_S = 2
+POS_E = 3
+VUL_NONE = 0
+VUL_EW = 1
+VUL_NS = 2
+VUL_ALL = 3
 
 
 class BridgeGame:
@@ -26,14 +47,16 @@ class BridgeGame:
     def __init__(self):
         self.bid_history = []
         self.play_history = []
-        self.stage = "Bidding"               # or "Playing"
-        self.contract = (-3,)
+        self.stage = STAGE_BIDDING               # or STAGE_PLAYING
+        self.contract = CONTRACT_INVALID
+        self.contractor = POS_N
         self.current_round = []
         self.current_leader = -1
-        self.vulnerability = -1
+        self.vulnerability = VUL_NONE
         self.hands = []                      # order: NWSE
-        self.largest_bid = BID_PASS
-        self.last_bidder = -1                # index of last normal bid
+        self.last_normal_bid = BID_PASS
+        self.last_normal_bidder = -1                # index of last normal bid
+        self.last_penalty = PENALTY_PASS
         self.NSTricks = 0
 
     def create_random_board(self):
@@ -43,13 +66,20 @@ class BridgeGame:
         return self.stage
 
     def bid(self, new_bid):
-        assert self.stage == "Bidding", "should not have finished bidding"
-
-        if not self.is_valid_bid(self.bid_history, new_bid, self.largest_bid,
-                                 self.last_bidder):
+        assert self.stage == STAGE_BIDDING, "should not have finished bidding"
+        if not self.is_valid_bid(new_bid):
             return BID_INVALID
-
-
+        if new_bid == BID_DOUBLE or new_bid == BID_REDOUBLE:
+            self.last_penalty = new_bid
+        if new_bid != BID_PASS:
+            self.last_normal_bid = new_bid
+            self.last_normal_bidder = len(self.bid_history)
+        self.bid_history.append(new_bid)
+        if self.is_done_bidding():
+            self.stage = STAGE_PLAYING
+            self.contract = self.last_normal_bid, self.last_penalty
+            if self.contract != CONTRACT_PASS:
+                self.contractor = self.calc_contractor()
 
     @staticmethod
     def calculate_score(contract, vulnerability, result):  # TODO: implement this
@@ -60,6 +90,14 @@ class BridgeGame:
         else:
             pass
         return 0
+
+    def calc_contractor(self):
+        assert self.last_normal_bid != BID_PASS, "should be pass contract"
+        target_trump = self.last_normal_bid[1]
+        for ind, bid in enumerate(self.play_history[self.last_normal_bidder%2::2]):
+            if bid[0] > 0 and bid[1] == target_trump:
+                return ind % 2 * 2 + self.last_normal_bidder % 2
+
 
     @staticmethod
     def create_random_board():  # TODO: implement this
@@ -74,56 +112,47 @@ class BridgeGame:
             return bid0[1] > bid1[1]
         return bid0[0] > bid1[0]
 
-    @staticmethod
-    def is_valid_bid(bid_history, new_bid, largest_bid, largest_bid_index):
+    def is_valid_bid(self, new_bid):
         """
         Check if a new bid is valid
-        :param bid_history: history of bids
         :param new_bid: the new bid to be checked
-        :param largest_bid: largest normal bid so far
-        :param largest_bid_index: index of the largest normal bid
         :return: if the new bid is valid
         """
-        if BridgeGame.is_done_bidding(bid_history):
+        if self.is_done_bidding():
             return False
         if new_bid == BID_PASS:  # passing bid
             return True
-        if not bid_history:
-            return True if new_bid[0] > 0 else False
+        if not self.bid_history:
+            return True if new_bid[0] > 0 else False  # allow first normal bid
         if new_bid == BID_REDOUBLE:  # redouble
-            if (len(bid_history) - largest_bid_index) % 2 != 0:
-                return False
-            return bid_history[-1] == BID_DOUBLE or (len(bid_history) >= 4
-                                                     and bid_history[-1] == BID_PASS == bid_history[-2] == BID_PASS
-                                                     and bid_history[-3] == BID_DOUBLE)
+            return self.last_penalty == PENALTY_DOUBLE and (len(self.bid_history) - self.last_normal_bidder) % 2 == 0
+            # if (len(self.bid_history) - self.last_normal_bidder) % 2 != 0:
+            #     return False
+            # return self.bid_history[-1] == BID_DOUBLE or (len(self.bid_history) >= 4
+            #                                   and self.bid_history[-1] == BID_PASS == self.bid_history[-2] == BID_PASS
+            #                                          and self.bid_history[-3] == BID_DOUBLE)
         if new_bid == BID_DOUBLE:  # double
-            if (len(bid_history) - largest_bid_index) % 2 != 1:
-                return False
-            return bid_history[-1][0] > 0 or (bid_history[-1] == BID_PASS == bid_history[-2] == BID_PASS
-                                              and bid_history[-3][0] > 0)
-        return BridgeGame.is_greater_bid(new_bid, largest_bid)  # normal bid
+            return self.last_penalty == PENALTY_PASS and (len(self.bid_history) - self.last_normal_bidder) % 2 == 1
+            # if (len(self.bid_history) - self.last_normal_bidder) % 2 != 1:
+            #     return False
+            # return self.bid_history[-1][0] > 0 or
+            #                                    (self.bid_history[-1] == BID_PASS == self.bid_history[-2] == BID_PASS
+            #                                   and self.bid_history[-3][0] > 0)
+        return BridgeGame.is_greater_bid(new_bid, self.last_normal_bid)  # normal bid
 
-    @staticmethod
-    def is_done_bidding(bid_history):
-        if len(bid_history) < 3:
+    def is_done_bidding(self):
+        if self.stage == STAGE_PLAYING:
+            return True
+        if len(self.bid_history) < 3:
             return False
-        return bid_history[-1] == bid_history[-2] == bid_history[-3] == BID_PASS
+        return self.bid_history[-1] == self.bid_history[-2] == self.bid_history[-3] == BID_PASS
 
-    @staticmethod
-    def is_done_playing(play_history):
-        return len(play_history) == 52
+    def is_done_playing(self):
+        return len(self.play_history) == 52
 
-    @staticmethod
-    def get_contract(bid_history, last_normal_bid):
-        assert BridgeGame.is_done_bidding(bid_history), "Need to be done bidding"
-
-        if len(bid_history) == 3:
-            return CONTRACT_PASS
-
-        if bid_history[-4][0] > 0:
-            return bid_history[-4], 0
-        else:
-            return last_normal_bid, bid_history[-4][0]
+    def get_contract(self):
+        assert self.is_done_bidding(), "Need to be done bidding"
+        return self.contract
 
     # def get_result():
     #
@@ -132,7 +161,7 @@ class BridgeGame:
     @staticmethod
     def card_value_key(card, trump, lead_suit):
         """
-        used to compare cards
+        key function used to compare cards while playing
         :param card: card to be compared
         :param trump: trump of the trick
         :param lead_suit: leading suit of the trick
