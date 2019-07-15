@@ -1,6 +1,10 @@
 import numpy as np
 
 
+def comp(a, b):
+    return a//13 == b//13
+
+
 def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
     global play
     global card_holder_dict
@@ -9,14 +13,7 @@ def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
     l *= 4
     if m == 0:
         h = [play[48], play[49], play[50], play[51]]
-        # print(suit_distinguisher.searchsorted(h))
-        # print(np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48])))
-        # print(np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))[0])
-        # print(play[np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))])
-        # print(np.max(play[np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))[0]]))
-        # print(card_holder_dict[np.max(play[np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))[0]])])
-        if card_holder_dict[max(set(filter(lambda element: suit_distinguisher.searchsorted(element) == suit_distinguisher.searchsorted(play[48]), h)))] % 2 == 0:
-        # if card_holder_dict[np.max(play[np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))[0]])] % 2 == 0:
+        if card_holder_dict[max(filter(lambda element: comp(element, play[48]), h))] % 2 == 0:
             NS += 1
         return NS
     else:
@@ -24,12 +21,12 @@ def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
             playable_cards = set(state[0])
         else:
             first_card = play[l]
-            if len(np.where(suit_distinguisher.searchsorted(state[0]) == suit_distinguisher.searchsorted(first_card))[0]) == 0:
+            if len(set(filter(lambda element: comp(element, first_card), state[0]))) == 0:
                 playable_cards = set(state[0])
             else:
-                playable_cards = set(state[0][np.where(suit_distinguisher.searchsorted(state[0]) == suit_distinguisher.searchsorted(first_card))[0]])
+                playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
         for k in playable_cards:
-            if k - 1 not in playable_cards:
+            if k - 1 not in playable_cards or k % 13 == 0:
                 s = state.copy()
                 t = s[0]
                 play[52 - m] = k
@@ -95,10 +92,10 @@ def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
             playable_cards = set(state[0])
         else:
             first_card = play[l]
-            if len(np.where(suit_distinguisher.searchsorted(state[0]) == suit_distinguisher.searchsorted(first_card))[0]) == 0:
+            if len(set(filter(lambda element: comp(element, first_card), state[0]))) == 0:
                 playable_cards = set(state[0])
             else:
-                playable_cards = set(state[0][np.where(suit_distinguisher.searchsorted(state[0]) == suit_distinguisher.searchsorted(first_card))[0]])
+                playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
         for k in playable_cards:
             if k % 13 == 0 or k - 1 not in playable_cards:
                 s = state.copy()
@@ -315,8 +312,8 @@ for count in range(5):
     for j in Eindex:
         card_holder[j] = 3
     card_holder_dict = dict(zip(card_rank, card_holder))
-    suit_distinguisher = np.array([-1, 12, 25, 38, 51])
-    #suit distinguisher
+    # suit_distinguisher = np.array([-1, 12, 25, 38, 51])
+    # suit distinguisher
     play = [-1] * 52
     # alpha = np.arange(14, 15)
     # alpha = alpha.repeat((13, 4))
