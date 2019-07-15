@@ -1,11 +1,22 @@
 import numpy as np
 
+INPUT_METHOD = 0  # 0 for console, 1 for file
+INPUT_FILE_NAME = ""  # file name for input
+
+Suit = ['S', 'H', 'D', 'C']
+Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
+"""
+Card code ranges from 0 to 51,
+Order: Higher suits are assigned higher codes. Clubs are assigned 0-12,
+Higher ranks are assigned higher codes. 2 of Club is assigned 0. 
+"""
+
 
 def comp(a, b):
     return a//13 == b//13
 
 
-def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
+def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13): # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
     global play
     global card_holder_dict
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
@@ -36,14 +47,20 @@ def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
                 if m % 4 != 1:
                     s = [s[1], s[2], s[3], t]
                 else:
-                    g = [play[l]]
+                    winning_card = play[l]
+                    winner = 0
                     for i in range(l + 1, l + 4):
-                        if comp(play[i], play[l]):
-                            g.append(play[i])
+                        if trump == 5:
+                            if comp(play[i], play[l]) and play[i] > winning_card:
+                                winning_card = play[i]
+                                winner = i - l
                         else:
-                            g.append(0)
-                    winning_card = np.max(g)
-                    winner = np.argmax(g)
+                            if comp(play[i], winning_card) and play[i] > winning_card:
+                                winning_card = play[i]
+                                winner = i - l
+                            if play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1:
+                                winning_card = play[i]
+                                winner = i - l
                     if card_holder_dict[winning_card] % 2 == 0:
                         flag = True
                         NS += 1
@@ -77,7 +94,7 @@ def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
         return alpha
 
 
-def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
+def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
     global play
     global card_holder_dict
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
@@ -105,14 +122,20 @@ def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
                 if m % 4 != 1:
                     s = [s[1], s[2], s[3], t]
                 else:
-                    g = [play[l]]
+                    winning_card = play[l]
+                    winner = 0
                     for i in range(l + 1, l + 4):
-                        if comp(play[i], play[l]):
-                            g.append(play[i])
+                        if trump == 5:
+                            if comp(play[i], play[l]) and play[i] > winning_card:
+                                winning_card = play[i]
+                                winner = i - l
                         else:
-                            g.append(0)
-                    winning_card = np.max(g)
-                    winner = np.argmax(g)
+                            if comp(play[i], winning_card) and play[i] > winning_card:
+                                winning_card = play[i]
+                                winner = i - l
+                            if play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1:
+                                winning_card = play[i]
+                                winner = i - l
                     if card_holder_dict[winning_card] % 2 == 0:
                         flag = True
                         NS += 1
@@ -146,43 +169,67 @@ def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
         return beta
 
 
-def print_rank(rank):  # print rank
-    if rank in range(0, 8):
-        print(rank + 2, end='')
+def get_suit(card):  # suit function
+    """
+    Get suit from card code
+    :param card: card code
+    :return: suit of the card, as string
+    """
+    if card < 13:
+        return 'C'
+    elif card < 26:
+        return 'D'
+    elif card < 39:
+        return 'H'
+    else:
+        return 'S'
+
+
+def rank_to_string(rank):
+    """
+    Get the corresponding string of card ranks.
+    0 -> "2", ..., 7 -> "9", 8 -> "T", 9 -> "J", 10 -> "Q", 11 -> "K", 12 -> "A"
+    :param rank: an integer representing a card rank, range 0-12, 12 the highest rank.
+    :return: the corresponding string, as shown on real cards
+    """
+    if 0 <= rank <= 8:
+        return str(rank + 2)
     if rank == 8:
-        print("T", end='')
+        return "T"
     if rank == 9:
-        print("J", end='')
+        return "J"
     if rank == 10:
-        print("Q", end='')
+        return "Q"
     if rank == 11:
-        print("K", end='')
+        return "K"
     if rank == 12:
-        print("A", end='')
+        return "A"
 
 
-def print_hand(hand):  # print hand, index list
-    print("C ", end='')
-    for j in np.where(hand < 13)[0]:
-        print_rank(hand[j])
-    print()
-    print("D ", end='')
-    for j in np.where(hand[np.where(hand < 26)[0]] > 12)[0]:
-        print_rank(hand[j] - 13)
-    print()
-    print("H ", end='')
-    for j in np.where(hand[np.where(hand < 39)[0]] > 25)[0]:
-        print_rank(hand[j] - 26)
-    print()
-    print("S ", end='')
-    for j in np.where(hand[np.where(hand < 52)[0]] > 38)[0]:
-        print_rank(hand[j] - 39)
-    print()
-    print()
+def hand_to_string(hand):
+    """
+    Print a hand. Order: S H D C. One suit per line.
+    :param hand: list of card index.
+    """
+    str_list = ["S "]
+    for j in hand[hand > 38]:
+        str_list.append(rank_to_string(hand[j] % 13))
+    str_list.append("\nH")
+    for j in hand[(hand < 39) & (hand > 25)]:
+        str_list.append(rank_to_string(hand[j] % 13))
+    str_list .append("\nD")
+    for j in hand[(hand < 26) & (hand > 12)]:
+        str_list.append(rank_to_string(hand[j] % 13))
+    str_list.append("\nC")
+    for j in hand[hand < 13]:
+        str_list.append(rank_to_string(j))
+    str_list.append("\n")
+    return ''.join(str_list)
 
 
-def input_hand(name, hand):  # name: name of hand, hand: place to put the hand
-    for count in range(13):
+def input_hand_from_console(name):  # name: name of hand, hand: list of card code
+    output = []
+    for _ in range(13):
         suit = input(name + ", suit (single letter). ")
         while suit not in Suit:
             print("Error. Suit not found.")
@@ -194,50 +241,84 @@ def input_hand(name, hand):  # name: name of hand, hand: place to put the hand
             card = input(
                 name + ", re-enter card (2 - 10 = value as shown on card, J = 11, Q = 12, K = 13, A = 14). ")
         if suit == 'C':
-            hand[int(card) - 2] = 1
+            output.append(int(card) - 2)
         if suit == 'D':
-            hand[int(card) + 11] = 1
+            output.append(int(card) + 11)
         if suit == 'H':
-            hand[int(card) + 24] = 1
+            output.append(int(card) + 24)
         if suit == 'S':
-            hand[int(card) + 37] = 1
+            output.append(int(card) + 37)
+    return output
 
 
-handN = np.zeros(52)
-handW = np.zeros(52)
-handS = np.zeros(52)
-handE = np.zeros(52)
-RC = np.arange(1, 2)
-# RC for Remaining Cards
-RC = RC.repeat(52)
+def string_to_rank(string):
+    """
+    Inverse of rank_to_string()
+    :param string: string to be parsed
+    :return: an integer in range 0-12
+    """
+    if string == "T":
+        return 8
+    if string == "J":
+        return 9
+    if string == "Q":
+        return 10
+    if string == "K":
+        return 11
+    if string == "A":
+        return 12
+    if 0 <= string <= 8:
+        return str(string + 2)
 
-count = 0
-Suit = ['S', 'H', 'D', 'C']
-Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
 
-handN = np.zeros(52)
-handW = np.zeros(52)
-handS = np.zeros(52)
-handE = np.zeros(52)
-RC = np.arange(1, 2)  # RC for Remaining Cards
-RC = RC.repeat(52)
+def input_hands_from_file(filename, number_of_hands):
+    """
+    Read hands from file. File format: One line per hand, separate suit by space, suit order: S H D C
+    Characters other than 2-9,AKQJT, are ignored
+    Example hand with no Diamonds: AKT76 KQ87 X J543
+    Ranks are not necessarily ordered.
+    Does not check number of cards and suits.
+    :param filename: Name of file containing hands
+    :param number_of_hands: number of hands to be read
+    :return: a list of hands represented by lists of card index.
+    """
+    hands = []
+    with open(filename) as file:
+        hand_count = 0
+        for line_of_hand in file:
+            if hand_count >= number_of_hands:
+                break
+            curr_hand = []
+            suit_offset = 0
+            separated_line = line_of_hand.split(" ")
+            for suit in separated_line:
+                for rank in suit:
+                    curr_hand.append(string_to_rank(rank) + suit_offset)
+                suit_offset += 13
+            hands.append(curr_hand)
+            hand_count += 1
+    return hands
 
-Suit = ['S', 'H', 'D', 'C']
-Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
 
-input_hand("North", handN)
-RC = RC - handN
-input_hand("South", handS)
-RC = RC - handS
+RC = set(range(52)) # RC for remaining cards
+if INPUT_METHOD == 0:
+    Nindex = input_hand_from_console("North")
+    Sindex = input_hand_from_console("South")
+elif INPUT_METHOD == 1:
+    hands = input_hands_from_file(INPUT_FILE_NAME, 2)
+    Nindex = np.array(hands[0])
+    Sindex = np.array(hands[1])
+else:
+    Nindex = []
+    Sindex = []
+RC = RC - set(Nindex)
+RC = RC - set(Sindex)
 RC2 = RC.copy()
 
-Nindex = np.where(handN == 1)[0]
-Sindex = np.where(handS == 1)[0]
-
 print("S")
-print_hand(Sindex)
+print(hand_to_string(Sindex))
 print("N")
-print_hand(Nindex)
+print(hand_to_string(Nindex))
 
 for count in range(5):
     RC = RC2
@@ -250,13 +331,15 @@ for count in range(5):
     for j in range(13):
         handW[Windex[j]] = 1
     print("W")
-    print_hand(Windex)
+    print(hand_to_string(Windex))
     RC = RC - handW
     Eindex = np.nonzero(RC)[0]
+
     for j in range(13):
         handE[Eindex[j]] = 1
+    print()
     print("E")
-    print_hand(Eindex)
+    print(hand_to_string(Eindex))
     card_holder = np.zeros(52, dtype=int)
     card_rank = np.arange(52)
     for j in Nindex:
@@ -268,23 +351,18 @@ for count in range(5):
     for j in Eindex:
         card_holder[j] = 3
     card_holder_dict = dict(zip(card_rank, card_holder))
-    # suit_distinguisher = np.array([-1, 12, 25, 38, 51])
-    # suit distinguisher
     play = [-1] * 52
-    # alpha = np.arange(14, 15)
-    # alpha = alpha.repeat((13, 4))
-    # beta = np.arange(-10, -9)
-    # beta = beta.repeat((13, 4))
-    Nindex_image, Windex_image, Sindex_image, Eindex_image = Nindex.copy(), Windex.copy(), Sindex.copy(), Eindex.copy()
-    player = np.zeros(52, dtype=int)
-    turn_winner = np.zeros(14, dtype=int)
-    turn_winner[0] = 1
+
+    # Nindex_image, Windex_image, Sindex_image, Eindex_image = Nindex.copy(), Windex.copy(), Sindex.copy(), Eindex.copy()
+    # player = np.zeros(52, dtype=int)
+    # turn_winner = np.zeros(14, dtype=int)
+    # turn_winner[0] = 1
     # N = 0, W = 1, S = 2, E = 3
-    playable_cards = [0] * 52
+    # playable_cards = [0] * 52
     # Playable Cards
-    trickNS, trickEW = 0, 0
-    index_set = [Nindex, Windex, Sindex, Eindex]
-    j = np.zeros(52, dtype=int)
+    # trickNS, trickEW = 0, 0
+    # index_set = [Nindex, Windex, Sindex, Eindex]
+    # j = np.zeros(52, dtype=int)
     # Case 1: Trump = NT
     print(MAX_VALUE(state=[Windex, Sindex, Eindex, Nindex]))
     while count2 in range(52):
