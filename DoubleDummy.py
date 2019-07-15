@@ -9,8 +9,7 @@ def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
     global play
     global card_holder_dict
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
-    l = (52 - m) // 4
-    l *= 4
+    l = ((52 - m) // 4) * 4
     if m == 0:
         h = [play[48], play[49], play[50], play[51]]
         if card_holder_dict[max(filter(lambda element: comp(element, play[48]), h))] % 2 == 0:
@@ -21,12 +20,12 @@ def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
             playable_cards = set(state[0])
         else:
             first_card = play[l]
-            if len(set(filter(lambda element: comp(element, first_card), state[0]))) == 0:
+            if not set(filter(lambda element: comp(element, first_card), state[0])):
                 playable_cards = set(state[0])
             else:
                 playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
         for k in playable_cards:
-            if k - 1 not in playable_cards or k % 13 == 0:
+            if k % 13 == 0 or k - 1 not in playable_cards:
                 s = state.copy()
                 t = s[0]
                 play[52 - m] = k
@@ -39,7 +38,7 @@ def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
                 else:
                     g = [play[l]]
                     for i in range(l + 1, l + 4):
-                        if suitfc(play[i]) == suitfc(play[l]):
+                        if comp(play[i], play[l]):
                             g.append(play[i])
                         else:
                             g.append(0)
@@ -58,7 +57,6 @@ def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
                         beta = EW
                         if alpha >= beta:
                             return alpha
-                    # print(alpha, beta, "trick")
                     if winner == 0:
                         s = [s[1], s[2], s[3], t]
                     elif winner == 1:
@@ -83,8 +81,7 @@ def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
     global play
     global card_holder_dict
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
-    l = (52 - m) // 4
-    l *= 4
+    l = ((52 - m) // 4) * 4
     if m == 0:
         return EW
     else:
@@ -92,7 +89,7 @@ def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
             playable_cards = set(state[0])
         else:
             first_card = play[l]
-            if len(set(filter(lambda element: comp(element, first_card), state[0]))) == 0:
+            if not set(filter(lambda element: comp(element, first_card), state[0])):
                 playable_cards = set(state[0])
             else:
                 playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
@@ -110,7 +107,7 @@ def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
                 else:
                     g = [play[l]]
                     for i in range(l + 1, l + 4):
-                        if suitfc(play[i]) == suitfc(play[l]):
+                        if comp(play[i], play[l]):
                             g.append(play[i])
                         else:
                             g.append(0)
@@ -129,7 +126,6 @@ def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
                         beta = EW
                         if alpha >= beta:
                             return beta
-                    # print(alpha, beta, "trick")
                     if winner == 0:
                         s = [s[1], s[2], s[3], t]
                     elif winner == 1:
@@ -150,77 +146,37 @@ def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
         return beta
 
 
-def suitfc(card):  # suit function
-    if card < 13:
-        return 'C'
-    elif card < 26:
-        return 'D'
-    elif card < 39:
-        return 'H'
-    else:
-        return 'S'
+def print_rank(rank):  # print rank
+    if rank in range(0, 8):
+        print(rank + 2, end='')
+    if rank == 8:
+        print("T", end='')
+    if rank == 9:
+        print("J", end='')
+    if rank == 10:
+        print("Q", end='')
+    if rank == 11:
+        print("K", end='')
+    if rank == 12:
+        print("A", end='')
 
 
 def print_hand(hand):  # print hand, index list
     print("C ", end='')
     for j in np.where(hand < 13)[0]:
-        if hand[j] in range(0, 8):
-            print(hand[j] + 2, end='')
-        if hand[j] == 8:
-            print("T", end='')
-        if hand[j] == 9:
-            print("J", end='')
-        if hand[j] == 10:
-            print("Q", end='')
-        if hand[j] == 11:
-            print("K", end='')
-        if hand[j] == 12:
-            print("A", end='')
+        print_rank(hand[j])
     print()
     print("D ", end='')
     for j in np.where(hand[np.where(hand < 26)[0]] > 12)[0]:
-        if hand[j] in range(13, 21):
-            print(hand[j] - 11, end='')
-        if hand[j] == 21:
-            print("T", end='')
-        if hand[j] == 22:
-            print("J", end='')
-        if hand[j] == 23:
-            print("Q", end='')
-        if hand[j] == 24:
-            print("K", end='')
-        if hand[j] == 25:
-            print("A", end='')
+        print_rank(hand[j] - 13)
     print()
     print("H ", end='')
     for j in np.where(hand[np.where(hand < 39)[0]] > 25)[0]:
-        if hand[j] in range(26, 34):
-            print(hand[j] - 24, end='')
-        if hand[j] == 34:
-            print("T", end='')
-        if hand[j] == 35:
-            print("J", end='')
-        if hand[j] == 36:
-            print("Q", end='')
-        if hand[j] == 37:
-            print("K", end='')
-        if hand[j] == 38:
-            print("A", end='')
+        print_rank(hand[j] - 26)
     print()
     print("S ", end='')
     for j in np.where(hand[np.where(hand < 52)[0]] > 38)[0]:
-        if hand[j] in range(39, 47):
-            print(hand[j] - 37, end='')
-        if hand[j] == 47:
-            print("T", end='')
-        if hand[j] == 48:
-            print("J", end='')
-        if hand[j] == 49:
-            print("Q", end='')
-        if hand[j] == 50:
-            print("K", end='')
-        if hand[j] == 51:
-            print("A", end='')
+        print_rank(hand[j] - 39)
     print()
     print()
 
