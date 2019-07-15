@@ -9,7 +9,14 @@ def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
     l *= 4
     if m == 0:
         h = [play[48], play[49], play[50], play[51]]
-        if card_holder_dict[np.max(play[np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))[0]])] % 2 == 0:
+        # print(suit_distinguisher.searchsorted(h))
+        # print(np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48])))
+        # print(np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))[0])
+        # print(play[np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))])
+        # print(np.max(play[np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))[0]]))
+        # print(card_holder_dict[np.max(play[np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))[0]])])
+        if card_holder_dict[max(set(filter(lambda element: suit_distinguisher.searchsorted(element) == suit_distinguisher.searchsorted(play[48]), h)))] % 2 == 0:
+        # if card_holder_dict[np.max(play[np.where(suit_distinguisher.searchsorted(h) == suit_distinguisher.searchsorted(play[48]))[0]])] % 2 == 0:
             NS += 1
         return NS
     else:
@@ -68,7 +75,8 @@ def MAX_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
                     alpha = max(alpha, MAX_VALUE(s, alpha, beta, NS, EW))
                 else:
                     alpha = max(alpha, MIN_VALUE(s, alpha, beta, NS, EW))
-                print(alpha, beta)
+                if l <= 40:
+                    print(l)
                 if alpha >= beta:
                     return beta
         return alpha
@@ -138,7 +146,8 @@ def MIN_VALUE(state, alpha=0, beta=13, NS=0, EW=13):
                     beta = min(beta, MAX_VALUE(s, alpha, beta, NS, EW))
                 else:
                     beta = min(beta, MIN_VALUE(s, alpha, beta, NS, EW))
-                print(alpha, beta)
+                if l <= 40:
+                    print(l)
                 if alpha >= beta:
                     return alpha
         return beta
