@@ -16,7 +16,7 @@ def comp(a, b):
     return a//13 == b//13
 
 
-def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13): # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
+def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
     global play
     global card_holder_dict
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
@@ -55,10 +55,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13): # trump: C = 1, D = 
                                 winning_card = play[i]
                                 winner = i - l
                         else:
-                            if comp(play[i], winning_card) and play[i] > winning_card:
-                                winning_card = play[i]
-                                winner = i - l
-                            if play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1:
+                            if (comp(play[i], winning_card) and play[i] > winning_card) or (play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1):
                                 winning_card = play[i]
                                 winner = i - l
                     if card_holder_dict[winning_card] % 2 == 0:
@@ -130,10 +127,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                                 winning_card = play[i]
                                 winner = i - l
                         else:
-                            if comp(play[i], winning_card) and play[i] > winning_card:
-                                winning_card = play[i]
-                                winner = i - l
-                            if play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1:
+                            if (comp(play[i], winning_card) and play[i] > winning_card) or (play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1):
                                 winning_card = play[i]
                                 winner = i - l
                     if card_holder_dict[winning_card] % 2 == 0:
