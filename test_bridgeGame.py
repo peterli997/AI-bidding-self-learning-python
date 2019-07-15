@@ -126,7 +126,62 @@ class TestBridgeGame(TestCase):
         self.fail()
 
     def test_get_contract(self):
-        self.fail()
+        # 1C P 1D P 2C P 3D P 4D P P P P
+        bid_list = [BID_1C, BID_1D, BID_PASS, BID_2C, BID_PASS, BID_PASS, BID_3D, BID_4D,
+                    BID_PASS, BID_PASS, BID_PASS, BID_PASS]
+
+
+        # 7NT 1C
+        bid_list = [BID_7NT, BID_1C]
+        self.test_bid_sequence(bid_list)
+
+        # P P P P
+        bid_list = [BID_PASS, BID_PASS, BID_PASS, BID_PASS]
+        self.test_bid_sequence(bid_list)
+
+        # P P P 7NT
+        bid_list = [BID_PASS, BID_PASS, BID_PASS, BID_7NT]
+        self.test_bid_sequence(bid_list)
+
+        # P X
+        bid_list = [BID_PASS, BID_DOUBLE]
+        self.test_bid_sequence(bid_list)
+
+        # P XX
+        bid_list = [BID_PASS, BID_REDOUBLE]
+        self.test_bid_sequence(bid_list)
+
+        # X
+        bid_list = [BID_DOUBLE]
+        self.test_bid_sequence(bid_list)
+
+        # XX
+        bid_list = [BID_REDOUBLE]
+        self.test_bid_sequence(bid_list)
+
+        # P 7NT XX
+        bid_list = [BID_PASS, BID_7NT, BID_REDOUBLE]
+        self.test_bid_sequence(bid_list)
+
+        # P 7NT P X
+        bid_list = [BID_PASS, BID_7NT, BID_PASS, BID_DOUBLE]
+        self.test_bid_sequence(bid_list)
+
+        # P 7NT P P XX
+        bid_list = [BID_PASS, BID_7NT, BID_PASS, BID_PASS, BID_REDOUBLE]
+        self.test_bid_sequence(bid_list)
+
+        # P P 7NT X XX XX
+        bid_list = [BID_PASS, BID_PASS, BID_7NT, BID_DOUBLE, BID_REDOUBLE, BID_REDOUBLE]
+        self.test_bid_sequence(bid_list)
+
+        # P 1C X P P XX P P 2C P P X P XX
+        bid_list = [BID_PASS, BID_1C, BID_DOUBLE, BID_PASS, BID_PASS, BID_REDOUBLE, BID_PASS, BID_PASS,
+                    BID_2C, BID_PASS, BID_PASS, BID_DOUBLE, BID_PASS, BID_REDOUBLE]
+        self.test_bid_sequence(bid_list)
+
+        # Don't fail
+        # self.fail()
 
     def test_card_value_key(self):
         self.fail()
