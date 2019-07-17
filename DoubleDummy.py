@@ -26,6 +26,8 @@ def comp(a, b):
 def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
     global play
     global card_holder_dict
+    a = NS
+    b = EW
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
     l = ((52 - m) // 4) * 4
     if m == 4:
@@ -37,12 +39,12 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
             else:
                 if (comp(state[i][0], winning_card) and play[i] > winning_card) or (state[i][0] // 13 == trump - 1 and winning_card // 13 != trump - 1):
                     winning_card = state[i][0]
-        if card_holder_dict[winning_card] % 2 == 0:
+        if not card_holder_dict[winning_card] % 2:
             NS += 1
         # print(state, trump, alpha, beta, NS, EW, NS, "1")
         return NS
     else:
-        if m % 4 == 0:
+        if not m % 4:
             playable_cards = set(state[0])
         else:
             first_card = play[l]
@@ -51,7 +53,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
             else:
                 playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
         for k in playable_cards:
-            if k % 13 == 0 or k - 1 not in playable_cards:
+            if not k % 13 or k - 1 not in playable_cards:
                 s = state.copy()
                 t = s[0].copy()
                 play[52 - m] = k
@@ -66,11 +68,11 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                         if (comp(play[i], winning_card) and play[i] > winning_card) or (play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1):
                             winning_card = play[i]
                             winner = i - l
-                    if card_holder_dict[winning_card] % 2 == 0:
+                    if not card_holder_dict[winning_card] % 2:
                         flag = True
-                        NS += 1
+                        NS = a + 1
                     else:
-                        EW -= 1
+                        EW = b - 1
                     if NS > alpha:
                         alpha = NS
                         # print("alpha = NS, ", alpha)
@@ -80,7 +82,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                         beta = EW
                         if alpha >= beta:
                             return alpha
-                    if winner == 0:
+                    if not winner:
                         s = [s[1], s[2], s[3], t]
                     elif winner == 1:
                         s = [s[2], s[3], t, s[1]]
@@ -92,6 +94,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     alpha = max(alpha, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                     # print("alpha = max(max), ", alpha, s, trump, alpha, beta, NS, EW)
                 else:
+                    # print("alpha is about to = max(min)", alpha, s, trump, alpha, beta, NS, EW)
                     alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
                     # print("alpha = max(min), ", alpha, s, trump, alpha, beta, NS, EW)
                 if l <= 16:
@@ -108,6 +111,8 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
 def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
     global play
     global card_holder_dict
+    a = NS
+    b = EW
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
     l = ((52 - m) // 4) * 4
     if m == 4:
@@ -119,12 +124,12 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
             else:
                 if (comp(state[i][0], winning_card) and play[i] > winning_card) or (state[i][0] // 13 == trump - 1 and winning_card // 13 != trump - 1):
                     winning_card = state[i][0]
-        if card_holder_dict[winning_card] % 2 != 0:
+        if card_holder_dict[winning_card] % 2:
             EW -= 1
         # print(state, trump, alpha, beta, NS, EW, EW, "4")
         return EW
     else:
-        if m % 4 == 0:
+        if not m % 4:
             playable_cards = set(state[0])
         else:
             first_card = play[l]
@@ -132,8 +137,9 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                 playable_cards = set(state[0])
             else:
                 playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
+            # print(first_card, playable_cards, state[0])
         for k in playable_cards:
-            if k % 13 == 0 or k - 1 not in playable_cards:
+            if not k % 13 or k - 1 not in playable_cards:
                 s = state.copy()
                 t = s[0].copy()
                 play[52 - m] = k
@@ -148,11 +154,11 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                         if (comp(play[i], winning_card) and play[i] > winning_card) or (play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1):
                             winning_card = play[i]
                             winner = i - l
-                    if card_holder_dict[winning_card] % 2 == 0:
-                        NS += 1
+                    if not card_holder_dict[winning_card] % 2:
+                        NS = a + 1
                     else:
                         flag = False
-                        EW -= 1
+                        EW = b - 1
                     if NS > alpha:
                         alpha = NS
                         if alpha >= beta:
@@ -161,7 +167,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                         beta = EW
                         if alpha >= beta:
                             return beta
-                    if winner == 0:
+                    if not winner:
                         s = [s[1], s[2], s[3], t]
                     elif winner == 1:
                         s = [s[2], s[3], t, s[1]]
@@ -328,10 +334,10 @@ def input_hands_from_file(filename, number_of_hands):
 play = [-1] * 52
 card_holder = [-1] * 52
 card_rank = list(range(52))
-s = [11, 12, 19, 21, 24, 26, 30, 31, 32, 36, 42, 45, 47]
-w = [3, 7, 9, 13, 15, 16, 27, 29, 33, 41, 43, 44, 49]
-n = [1, 2, 6, 8, 14, 20, 22, 25, 28, 35, 38, 39, 50]
-e = list(set(card_rank) - set(s) - set(w) - set(n))
+s = [0, 2, 4, 5, 10, 15, 20, 23, 24, 31, 33, 34, 36]
+w = [6, 7, 9, 11, 12, 13, 22, 26, 28, 30, 32, 37, 38]
+n = [1, 3, 14, 16, 29, 39, 40, 41, 42, 43, 44, 45, 50]
+e = [8, 17, 18, 19, 21, 25, 27, 35, 46, 47, 48, 49, 51]
 for j in s:
     card_holder[j] = 0
 for j in w:
@@ -342,7 +348,7 @@ for j in e:
     card_holder[j] = 3
 card_holder_dict = dict(zip(card_rank, card_holder))
 start = time.time()
-print(MAX_VALUE(state=[w, n, e, s], trump=5, alpha=0, beta=len(n), NS=0, EW=len(n)))
+print(MAX_VALUE(state=[n, e, s, w], trump=5, alpha=0, beta=len(n), NS=0, EW=len(n)))
 finish = time.time()
 print(finish - start)
 quit()
@@ -374,9 +380,8 @@ print(hand_to_string(Sindex))
 for count in range(5):
     RC = RC2
     print(count + 1)
-    Windex = np.random.choice(a=RC, size=13, replace=False)
+    Windex = list(np.random.choice(a=RC, size=13, replace=False))
     Windex.sort()
-    Windex = Windex.tolist()
     print("W")
     print(hand_to_string(Windex))
     RC = set(RC) - set(Windex)
