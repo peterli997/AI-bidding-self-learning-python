@@ -1,5 +1,7 @@
 import numpy as np
 import time
+from itertools import permutations
+import os
 
 INPUT_METHOD = 1  # 0 for console, 1 for file
 INPUT_FILE_NAME = "input.txt"  # file name for input
@@ -24,17 +26,9 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
     l = ((52 - m) // 4) * 4
     if m == 4:
         assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
-        winning_card = next(iter(state[0]))
-        for i in range(1, 4):
-            assert len(state[i]) == 1, "everyone should have 1 card for the last trick"
-            next_card = next(iter(state[i]))
-            if trump == 5:
-                if comp(next_card, winning_card) and next_card > winning_card:
-                    winning_card = next_card
-            else:
-                if (comp(next_card, winning_card) and next_card > winning_card) or (next_card // 13 == trump - 1 and winning_card // 13 != trump - 1):
-                    winning_card = next_card
-        if card_holder_dict[winning_card] % 2 == 0:
+        # winning_pos = trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))]
+        winning_pos = decide_winner([next(iter(state[0])),next(iter(state[1])),next(iter(state[2])),next(iter(state[3]))], trump - 1)
+        if winning_pos % 2 == 0:
             NS += 1
         return NS
     else:
@@ -42,57 +36,46 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
             playable_cards = state[0].copy()
         else:
             first_card = play[l]
-            try:
-                filter(lambda element: comp(element, first_card), state[0]).__next__()
-                playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
-            except StopIteration:
+            playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
+            if not playable_cards:
                 playable_cards = state[0].copy()
         for k in playable_cards:
             if k % 13 == 0 or k - 1 not in playable_cards:
-                s = state.copy()
                 play[52 - m] = k
-                s[0].remove(k)
+                state[0].remove(k)
                 # print(state[0],k,"max-in")
-                flag = False
-                if m % 4 != 1:
-                    s = [s[1], s[2], s[3], s[0]]
-                else:
-                    winning_card = play[l]
-                    winner = 0
-                    for i in range(l + 1, l + 4):
-                        if (comp(play[i], winning_card) and play[i] > winning_card) or (play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1):
-                            winning_card = play[i]
-                            winner = i - l
-                    if card_holder_dict[winning_card] % 2 == 0:
-                        flag = True
+                if m % 4 != 1:   # not end of trick
+                    s = [state[1], state[2], state[3], state[0]]
+                    alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
+                else:     # end of trick
+                    # winner = trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]]
+                    winner = decide_winner(play[l:l+4], trump - 1)
+                    if winner % 2 == 1:
                         NS += 1
+                        if NS > alpha:
+                            alpha = NS
+                            if alpha >= beta:
+                                # print(state[0], k, "max-NS-out")
+                                state[0].add(k)
+                                return alpha
+                        if winner == 3:
+                            s = state[:]
+                        else:
+                            s = state[2:] + state[:2]
+                        alpha = max(alpha, MAX_VALUE(s, trump, alpha, beta, NS, EW))
+                        NS -= 1
                     else:
                         EW -= 1
-                    if NS > alpha:
-                        alpha = NS
-                        if alpha >= beta:
-                            # print(state[0], k, "max-NS-out")
-                            s[0].add(k)
-                            return alpha
-                    if EW < beta:
-                        beta = EW
-                        if alpha >= beta:
-                            # print(state[0], k, "max-EW-out")
-                            s[0].add(k)
-                            return alpha
-                    if winner == 0:
-                        s = [s[1], s[2], s[3], s[0]]
-                    elif winner == 1:
-                        s = [s[2], s[3], s[0], s[1]]
-                    elif winner == 2:
-                        s = [s[3], s[0], s[1], s[2]]
-                    else:
-                        s = [s[0], s[1], s[2], s[3]]
-                if flag:
-                    alpha = max(alpha, MAX_VALUE(s, trump, alpha, beta, NS, EW))
-                else:
-                    alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
-                if l <= 16:
+                        if EW < beta:
+                            beta = EW
+                            if alpha >= beta:
+                                # print(state[0], k, "max-EW-out")
+                                state[0].add(k)
+                                return alpha
+                        s = state[winner + 1:] + state[:winner + 1]
+                        alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
+                        EW += 1
+                if l <= 8:
                     finish = time.time()
                     print(finish - start)
                     quit()
@@ -100,7 +83,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                 state[0].add(k)
                 # print(state[0])
                 if alpha >= beta:
-                    return beta
+                    return alpha
     return alpha
 
 
@@ -111,17 +94,10 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
     l = ((52 - m) // 4) * 4
     if m == 4:
         assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
-        winning_card = next(iter(state[0]))
-        for i in range(1, 4):
-            assert len(state[i]) == 1, "everyone should have 1 card for the last trick"
-            next_card = next(iter(state[i]))
-            if trump == 5:
-                if comp(next_card, winning_card) and next_card > winning_card:
-                    winning_card = next_card
-            else:
-                if (comp(next_card, winning_card) and next_card > winning_card) or (next_card // 13 == trump - 1 and winning_card // 13 != trump - 1):
-                    winning_card = next_card
-        if card_holder_dict[winning_card] % 2 == 0:
+        # winning_pos = trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))]
+        winning_pos = decide_winner(
+            [next(iter(state[0])), next(iter(state[1])), next(iter(state[2])), next(iter(state[3]))], trump - 1)
+        if winning_pos % 2 == 1:
             NS += 1
         return NS
     else:
@@ -129,55 +105,46 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
             playable_cards = state[0].copy()
         else:
             first_card = play[l]
-            try:
-                filter(lambda element: comp(element, first_card), state[0]).__next__()
-                playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
-            except StopIteration:
+            playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
+            if not playable_cards:
                 playable_cards = state[0].copy()
         for k in playable_cards:
             if k % 13 == 0 or k - 1 not in playable_cards:
                 play[52 - m] = k
                 state[0].remove(k)
                 # print(state[0],k,"min-in")
-                flag = False
                 if m % 4 != 1:
                     s = [state[1], state[2], state[3], state[0]]
-                else:
-                    winning_card = play[l]
-                    winner = 0
-                    for i in range(l + 1, l + 4):
-                        if (comp(play[i], winning_card) and play[i] > winning_card) or (play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1):
-                            winning_card = play[i]
-                            winner = i - l
-                    if card_holder_dict[winning_card] % 2 == 0:
-                        NS += 1
-                    else:
-                        EW -= 1
-                    if NS > alpha:
-                        alpha = NS
-                        if alpha >= beta:
-                            # print(state[0], k, "min-NS-out")
-                            state[0].add(k)
-                            return beta
-                    if EW < beta:
-                        beta = EW
-                        if alpha >= beta:
-                            # print(state[0], k, "min-EW-out")
-                            state[0].add(k)
-                            return beta
-                    if winner == 0:
-                        s = [state[1], state[2], state[3], state[0]]
-                    elif winner == 1:
-                        s = [state[2], state[3], state[0], state[1]]
-                    elif winner == 2:
-                        s = [state[3], state[0], state[1], state[2]]
-                    else:
-                        s = [state[0], state[1], state[2], state[3]]
-                if flag:
-                    beta = min(beta, MIN_VALUE(s, trump, alpha, beta, NS, EW))
-                else:
                     beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
-                if l <= 16:
+                else:
+                    # winner = trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]]
+                    winner = decide_winner(play[l:l + 4], trump - 1)
+                    if winner % 2 != 0:
+                        EW -= 1
+                        if EW < beta:
+                            beta = EW
+                            if alpha >= beta:
+                                # print(state[0], k, "min-EW-out")
+                                state[0].add(k)
+                                return beta
+                        s = state[winner + 1:] + state[:winner + 1]
+                        beta = min(beta, MIN_VALUE(s, trump, alpha, beta, NS, EW))
+                        EW += 1
+                    else:
+                        NS += 1
+                        if NS > alpha:
+                            alpha = NS
+                            if alpha >= beta:
+                                # print(state[0], k, "min-NS-out")
+                                state[0].add(k)
+                                return beta
+                        if winner != 3:
+                            s = state[winner + 1:] + state[:winner + 1]
+                        else:
+                            s = state[:]
+                        beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
+                        NS -= 1
+                if l <= 8:
                     finish = time.time()
                     print(finish - start)
                     quit()
@@ -185,7 +152,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                 state[0].add(k)
                 # print(state[0])
                 if alpha >= beta:
-                    return alpha
+                    return beta
     return beta
 """
 Above is the minimax algorithm, showing that on NS perspective, North and South (dummy controlled by North) aims to
@@ -331,6 +298,36 @@ def input_hands_from_file(filename, number_of_hands):
     return hands
 
 
+def decide_winner(trick, trump):
+    winning_card = trick[0]
+    winner = 0
+    for i in range(4):
+        if (trick[i] // 13 == winning_card // 13 and trick[i] > winning_card) or (
+                trick[i] // 13 == trump and winning_card // 13 != trump):
+            winning_card = trick[i]
+            winner = i
+    return winner
+
+
+def create_lookup_table():
+    global trick_lookup_table
+    trick_lookup_table = np.zeros(shape=(5, 52, 52, 52, 52))
+    for trick in permutations(range(52), 4):
+        for trump in range(5):
+            winning_card = trick[0]
+            winner = 0
+            for i in range(4):
+                if (trick[i] // 13 == winning_card // 13 and trick[i] > winning_card) or (
+                        trick[i] // 13 == trump and winning_card // 13 != trump):
+                    winning_card = trick[i]
+                    winner = i
+            trick_lookup_table[trump][trick[0]][trick[1]][trick[2]][trick[3]] = winner
+    # start = time.time()
+    np.save("trick_lookup_table", trick_lookup_table)
+    # finish = time.time()
+    # print("save using np.save() time:", finish - start)
+
+
 RC = set(range(52))  # RC for remaining cards
 if INPUT_METHOD == 0:
     Nindex = input_hand_from_console("North")
@@ -369,6 +366,11 @@ print("W")
 print(hand_to_string(Windex))
 print("E")
 print(hand_to_string(Eindex))
+
+if os.path.exists("trick_lookup_table.npy"):
+    trick_lookup_table = np.load("trick_lookup_table.npy")
+else:
+    create_lookup_table()
 
 card_holder = np.zeros(52, dtype=int)
 card_rank = np.arange(52)
