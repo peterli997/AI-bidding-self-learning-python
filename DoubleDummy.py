@@ -24,10 +24,10 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
     l = ((52 - m) // 4) * 4
     if m == 4:
         assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
-        winning_card = list(state[0])[0]
+        winning_card = next(iter(state[0]))
         for i in range(1, 4):
             assert len(state[i]) == 1, "everyone should have 1 card for the last trick"
-            next_card = list(state[0])[0]
+            next_card = next(iter(state[i]))
             if trump == 5:
                 if comp(next_card, winning_card) and next_card > winning_card:
                     winning_card = next_card
@@ -52,6 +52,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                 s = state.copy()
                 play[52 - m] = k
                 s[0].remove(k)
+                # print(state[0],k,"max-in")
                 flag = False
                 if m % 4 != 1:
                     s = [s[1], s[2], s[3], s[0]]
@@ -70,11 +71,13 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     if NS > alpha:
                         alpha = NS
                         if alpha >= beta:
+                            # print(state[0], k, "max-NS-out")
                             s[0].add(k)
                             return alpha
                     if EW < beta:
                         beta = EW
                         if alpha >= beta:
+                            # print(state[0], k, "max-EW-out")
                             s[0].add(k)
                             return alpha
                     if winner == 0:
@@ -89,11 +92,13 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     alpha = max(alpha, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                 else:
                     alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
-                # if l <= 8:
-                #     finish = time.time()
-                #     print(finish - start)
-                #     quit()
-                s[0].add(k)
+                if l <= 16:
+                    finish = time.time()
+                    print(finish - start)
+                    quit()
+                # print(state[0], k, "max-out")
+                state[0].add(k)
+                # print(state[0])
                 if alpha >= beta:
                     return beta
     return alpha
@@ -106,10 +111,10 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
     l = ((52 - m) // 4) * 4
     if m == 4:
         assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
-        winning_card = list(state[0])[0]
+        winning_card = next(iter(state[0]))
         for i in range(1, 4):
             assert len(state[i]) == 1, "everyone should have 1 card for the last trick"
-            next_card = list(state[0])[0]
+            next_card = next(iter(state[i]))
             if trump == 5:
                 if comp(next_card, winning_card) and next_card > winning_card:
                     winning_card = next_card
@@ -133,6 +138,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
             if k % 13 == 0 or k - 1 not in playable_cards:
                 play[52 - m] = k
                 state[0].remove(k)
+                # print(state[0],k,"min-in")
                 flag = False
                 if m % 4 != 1:
                     s = [state[1], state[2], state[3], state[0]]
@@ -144,18 +150,20 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                             winning_card = play[i]
                             winner = i - l
                     if card_holder_dict[winning_card] % 2 == 0:
-                        flag = True
                         NS += 1
                     else:
+                        flag = True
                         EW += 1
                     if NS > alpha:
                         alpha = NS
                         if alpha >= beta:
+                            # print(state[0], k, "min-NS-out")
                             state[0].add(k)
                             return beta
                     if EW < beta:
                         beta = EW
                         if alpha >= beta:
+                            # print(state[0], k, "min-EW-out")
                             state[0].add(k)
                             return beta
                     if winner == 0:
@@ -167,14 +175,16 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     else:
                         s = [state[0], state[1], state[2], state[3]]
                 if flag:
-                    beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
-                else:
                     beta = min(beta, MIN_VALUE(s, trump, alpha, beta, NS, EW))
-                # if l <= 8:
-                #     finish = time.time()
-                #     print(finish - start)
-                #     quit()
+                else:
+                    beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
+                if l <= 16:
+                    finish = time.time()
+                    print(finish - start)
+                    quit()
+                # print(state[0], k,"min-out")
                 state[0].add(k)
+                # print(state[0])
                 if alpha >= beta:
                     return alpha
     return beta
@@ -315,28 +325,27 @@ RC = set(range(52))  # RC for remaining cards
 if INPUT_METHOD == 0:
     Nindex = input_hand_from_console("North")
     Sindex = input_hand_from_console("South")
-    RC = RC - Nindex
-    RC = RC - Sindex
-    RC = RC
-    RC2 = RC.copy()
+
 elif INPUT_METHOD == 1:
     hands = input_hands_from_file(INPUT_FILE_NAME, 4)
     Nindex = hands[0]
-    Sindex = hands[1]
-    Windex = hands[1]
     Eindex = hands[1]
+    Sindex = hands[2]
+    Windex = hands[3]
 else:
     Nindex = set(range(13))
     Sindex = set(range(14, 26))
-
 
 print("S")
 print(hand_to_string(Sindex))
 print("N")
 print(hand_to_string(Nindex))
 
-
 if INPUT_METHOD != 1:
+    RC = RC - Nindex
+    RC = RC - Sindex
+    RC = RC
+    RC2 = RC.copy()
     RC = np.array(list(RC2))
     Windex = np.random.choice(a=RC, size=13, replace=False)
     Windex.sort()
@@ -350,6 +359,7 @@ print("W")
 print(hand_to_string(Windex))
 print("E")
 print(hand_to_string(Eindex))
+
 card_holder = np.zeros(52, dtype=int)
 card_rank = np.arange(52)
 for j in Nindex:
@@ -365,7 +375,7 @@ play = [-1] * 52
 
 # Case 1: Trump = NT
 # print(type(Windex), type(Sindex), type(Eindex), type(Nindex))
-current_state = [Windex, Sindex, Eindex, Nindex]
+current_state = [Nindex, Eindex, Sindex, Windex]
 start = time.time()
 print(MAX_VALUE(state=current_state, trump=5), "NT")
 # Case 2：Trump = C
