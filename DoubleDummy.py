@@ -26,8 +26,8 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
     l = ((52 - m) // 4) * 4
     if m == 4:
         assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
-        # winning_pos = trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))]
-        winning_pos = decide_winner([next(iter(state[0])),next(iter(state[1])),next(iter(state[2])),next(iter(state[3]))], trump - 1)
+        winning_pos = int(trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))])
+        # winning_pos = decide_winner([next(iter(state[0])),next(iter(state[1])),next(iter(state[2])),next(iter(state[3]))], trump - 1)
         if winning_pos % 2 == 0:
             NS += 1
         return NS
@@ -48,8 +48,8 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     s = [state[1], state[2], state[3], state[0]]
                     alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
                 else:     # end of trick
-                    # winner = trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]]
-                    winner = decide_winner(play[l:l+4], trump - 1)
+                    winner = int(trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]])
+                    # winner = decide_winner(play[l:l+4], trump - 1)
                     if winner % 2 == 1:
                         NS += 1
                         if NS > alpha:
@@ -75,7 +75,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                         s = state[winner + 1:] + state[:winner + 1]
                         alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
                         EW += 1
-                if l <= 8:
+                if l <= 16:
                     finish = time.time()
                     print(finish - start)
                     quit()
@@ -94,9 +94,9 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
     l = ((52 - m) // 4) * 4
     if m == 4:
         assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
-        # winning_pos = trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))]
-        winning_pos = decide_winner(
-            [next(iter(state[0])), next(iter(state[1])), next(iter(state[2])), next(iter(state[3]))], trump - 1)
+        winning_pos = int(trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))])
+        # winning_pos = decide_winner(
+        #     [next(iter(state[0])), next(iter(state[1])), next(iter(state[2])), next(iter(state[3]))], trump - 1)
         if winning_pos % 2 == 1:
             NS += 1
         return NS
@@ -117,8 +117,8 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     s = [state[1], state[2], state[3], state[0]]
                     beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                 else:
-                    # winner = trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]]
-                    winner = decide_winner(play[l:l + 4], trump - 1)
+                    winner = int(trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]])
+                    # winner = decide_winner(play[l:l + 4], trump - 1)
                     if winner % 2 != 0:
                         EW -= 1
                         if EW < beta:
@@ -144,7 +144,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                             s = state[:]
                         beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                         NS -= 1
-                if l <= 8:
+                if l <= 16:
                     finish = time.time()
                     print(finish - start)
                     quit()
