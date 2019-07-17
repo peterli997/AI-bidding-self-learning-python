@@ -39,7 +39,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     winning_card = state[i][0]
         if card_holder_dict[winning_card] % 2 == 0:
             NS += 1
-        print(state, trump, alpha, beta, NS, EW, NS, "1")
+        # print(state, trump, alpha, beta, NS, EW, NS, "1")
         return NS
     else:
         if m % 4 == 0:
@@ -73,7 +73,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                         EW -= 1
                     if NS > alpha:
                         alpha = NS
-                        print("alpha = NS, ", alpha)
+                        # print("alpha = NS, ", alpha)
                         if alpha >= beta:
                             return alpha
                     if EW < beta:
@@ -94,10 +94,14 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                 else:
                     alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
                     # print("alpha = max(min), ", alpha, s, trump, alpha, beta, NS, EW)
+                if l <= 16:
+                    finish = time.time()
+                    print(finish - start)
+                    quit()
                 if alpha >= beta:
-                    print(state, trump, alpha, beta, NS, EW, beta, "2")
+                    # print(state, trump, alpha, beta, NS, EW, beta, "2")
                     return beta
-    print(state, trump, alpha, beta, NS, EW, alpha, "3")
+    # print(state, trump, alpha, beta, NS, EW, alpha, "3")
     return alpha
 
 
@@ -117,7 +121,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     winning_card = state[i][0]
         if card_holder_dict[winning_card] % 2 != 0:
             EW -= 1
-        print(state, trump, alpha, beta, NS, EW, EW, "4")
+        # print(state, trump, alpha, beta, NS, EW, EW, "4")
         return EW
     else:
         if m % 4 == 0:
@@ -134,7 +138,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                 t = s[0].copy()
                 play[52 - m] = k
                 t.remove(k)
-                flag = False
+                flag = True
                 if m % 4 != 1:
                     s = [s[1], s[2], s[3], t]
                 else:
@@ -145,9 +149,9 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                             winning_card = play[i]
                             winner = i - l
                     if card_holder_dict[winning_card] % 2 == 0:
-                        flag = True
                         NS += 1
                     else:
+                        flag = False
                         EW -= 1
                     if NS > alpha:
                         alpha = NS
@@ -169,10 +173,14 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                 else:
                     beta = min(beta, MIN_VALUE(s, trump, alpha, beta, NS, EW))
+                if l <= 16:
+                    finish = time.time()
+                    print(finish - start)
+                    quit()
                 if alpha >= beta:
-                    print(state, trump, alpha, beta, NS, EW, alpha, "5")
+                    # print(state, trump, alpha, beta, NS, EW, alpha, "5")
                     return alpha
-    print(state, trump, alpha, beta, NS, EW, beta, "6")
+    # print(state, trump, alpha, beta, NS, EW, beta, "6")
     return beta
 """
 Above is the minimax algorithm, showing that on NS perspective, North and South (dummy controlled by North) aims to
@@ -320,10 +328,10 @@ def input_hands_from_file(filename, number_of_hands):
 play = [-1] * 52
 card_holder = [-1] * 52
 card_rank = list(range(52))
-s = [19, 21, 24, 31, 32, 36]
-w = [9, 13, 15, 16, 29, 33]
-n = [14, 20, 22, 25, 28, 38]
-e = [5, 10, 17, 18, 23, 34]
+s = [11, 12, 19, 21, 24, 26, 30, 31, 32, 36, 42, 45, 47]
+w = [3, 7, 9, 13, 15, 16, 27, 29, 33, 41, 43, 44, 49]
+n = [1, 2, 6, 8, 14, 20, 22, 25, 28, 35, 38, 39, 50]
+e = list(set(card_rank) - set(s) - set(w) - set(n))
 for j in s:
     card_holder[j] = 0
 for j in w:
@@ -334,7 +342,7 @@ for j in e:
     card_holder[j] = 3
 card_holder_dict = dict(zip(card_rank, card_holder))
 start = time.time()
-print(MAX_VALUE(state=[s, w, n, e], trump=5, alpha=0, beta=len(n), NS=0, EW=len(n)))
+print(MAX_VALUE(state=[w, n, e, s], trump=5, alpha=0, beta=len(n), NS=0, EW=len(n)))
 finish = time.time()
 print(finish - start)
 quit()
