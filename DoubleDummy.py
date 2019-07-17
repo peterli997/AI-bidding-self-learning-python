@@ -67,7 +67,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                         flag = True
                         NS += 1
                     else:
-                        EW += 1
+                        EW -= 1
                     if NS > alpha:
                         alpha = NS
                         if alpha >= beta:
@@ -152,8 +152,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     if card_holder_dict[winning_card] % 2 == 0:
                         NS += 1
                     else:
-                        flag = True
-                        EW += 1
+                        EW -= 1
                     if NS > alpha:
                         alpha = NS
                         if alpha >= beta:
@@ -188,6 +187,17 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                 if alpha >= beta:
                     return alpha
     return beta
+"""
+Above is the minimax algorithm, showing that on NS perspective, North and South (dummy controlled by North) aims to
+maximize NS tricks, where East and West aims to minimize EW tricks. Both MAX_VALUE and MIN_VALUE returns the number of
+NS tricks. MAX_VALUE returns at this state, given EW's best effort to minimize NS tricks, how many tricks can NS get.
+MIN_VALUE returns at this state, at most how many tricks can NS get with all possible plays (potentially not with any
+effort towards the bridge game's goals).
+Alpha-beta algorithm is an algorithm that skips unnecessary nodes in a bridge game that aims to optimize the algorithm.
+The effectiveness of the optimization from the alpha-beta algorithm depends on how the tree is approached with the
+algorithm, which in turn depends on the actual distribution of hands. Nevertheless, alpha-beta will skip nodes and
+should be faster than minimax algorithm itself.
+"""
 
 
 def get_suit(card):  # suit function
@@ -364,11 +374,11 @@ card_holder = np.zeros(52, dtype=int)
 card_rank = np.arange(52)
 for j in Nindex:
     card_holder[j] = 0
-for j in Windex:
+for j in Eindex:
     card_holder[j] = 1
 for j in Sindex:
     card_holder[j] = 2
-for j in Eindex:
+for j in Windex:
     card_holder[j] = 3
 card_holder_dict = dict(zip(card_rank, card_holder))
 play = [-1] * 52
