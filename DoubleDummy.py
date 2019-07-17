@@ -364,11 +364,11 @@ card_holder = np.zeros(52, dtype=int)
 card_rank = np.arange(52)
 for j in Nindex:
     card_holder[j] = 0
-for j in Windex:
+for j in Eindex:
     card_holder[j] = 1
 for j in Sindex:
     card_holder[j] = 2
-for j in Eindex:
+for j in Windex:
     card_holder[j] = 3
 card_holder_dict = dict(zip(card_rank, card_holder))
 play = [-1] * 52
