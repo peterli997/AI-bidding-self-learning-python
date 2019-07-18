@@ -11,7 +11,7 @@ LINK_LEVEL = 7 # number of remaining tricks to be stored - 1
 HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904]
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = 8
+TEST_L = -1  # -1 for complete run
 """
 Card code ranges from 0 to 51,
 Order: Higher suits are assigned higher codes. Clubs are assigned 0-12, diamonds 13-25, hearts 26-38, and spades 39-51.
@@ -517,10 +517,10 @@ print(hand_to_string(Windex))
 print("E")
 print(hand_to_string(Eindex))
 
-if os.path.exists("trick_lookup_table.npy"):
-    trick_lookup_table = np.load("trick_lookup_table.npy")
-else:
-    create_lookup_table()
+# if os.path.exists("trick_lookup_table.npy"):
+#     trick_lookup_table = np.load("trick_lookup_table.npy")
+# else:
+#     create_lookup_table()
 
 if os.path.exists("link_lookup_table.pkl"):
     f = open("link_lookup_table.pkl", 'rb')
