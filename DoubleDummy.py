@@ -57,18 +57,23 @@ class SuitLevelLinks:
         self.trump = trump
         if leader != 0:
             self.link_dict = set()
-            for link in link_dict.values():
-                self.link_dict.add(SuitLink([(x - leader) % 4 for x in link if x != -1]))
+            for i, link in link_dict.items():
+                if i == trump - 1:
+                    self.link_trump = SuitLink([(x - leader) % 4 for x in link if x != -1])
+                else:
+                    self.link_dict.add(SuitLink([(x - leader) % 4 for x in link if x != -1]))
         else:
-            self.link_dict = {SuitLink(y) for y in link_dict.values()}
-        self.cache_link_hash = {x.__hash__() for y, x in link_dict.items() if y != trump}  # need to be alwsys valid
+            self.link_dict = {SuitLink(y) for x, y in link_dict.items() if x != trump - 1}
+            if trump != 5:
+                self.link_trump = SuitLink(link_dict[trump-1])
+        self.cache_link_hash = {x.__hash__() for x in self.link_dict}  # need to be alwsys valid
         if trump != 5:
-            self.cache_trump_hash = link_dict[trump].__hash__()  # need to be always valid
+            self.cache_trump_hash = self.link_trump.__hash__()  # need to be always valid
         self.cache_hash = self.__hash__()
         self.cache_valid = True
 
     def __str__(self):
-        return str(self.link_dict) + str(self.trump)
+        return str(self.link_dict) + str(self.trump) + "" if self.trump == 5 else str(self.link_trump)
 
     def __hash__(self):
         if self.cache_valid:
@@ -100,6 +105,8 @@ class SuitLevelLinks:
 
 def comp(a, b):
     return a//13 == b//13
+
+
 def update_link_lookup_table(suit_level_links, min, max):
     global link_lookup_table
     if suit_level_links in link_lookup_table:
@@ -107,7 +114,8 @@ def update_link_lookup_table(suit_level_links, min, max):
         min1 = min1 if min1 > min else min
         max1 = max1 if max1 < max else max
         link_lookup_table[suit_level_links] = (min1, max1)
-
+    else:
+        link_lookup_table[suit_level_links] = (min, max)
 
 def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
     global play
@@ -190,11 +198,11 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                 state[0].add(k)                                      # give back to state
                 suit_level_links[k // 13][k % 13] = cur_player  # give back to suit_level_links
                 if alpha >= beta:
-                    if m % 4 == 0:
-                        update_link_lookup_table(link_lookup_table, alpha - alpha2, 0)
+                    if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
+                        update_link_lookup_table(links, alpha - alpha2, 0)
                     return alpha
-    if m % 4 == 0:
-        update_link_lookup_table(link_lookup_table, alpha - alpha2, 0)
+    if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
+        update_link_lookup_table(links, alpha - alpha2, 0)
     return alpha
 
 
@@ -280,11 +288,11 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                 state[0].add(k)
                 suit_level_links[k // 13][k % 13] = cur_player  # give back to suit_level_links
                 if alpha >= beta:
-                    if m % 4 == 0:
-                        update_link_lookup_table(link_lookup_table, 0, beta2 - beta)
+                    if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
+                        update_link_lookup_table(links, 0, beta2 - beta)
                     return beta
-    if m % 4 == 0:
-        update_link_lookup_table(link_lookup_table, 0, beta2 - beta)
+    if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
+        update_link_lookup_table(links, 0, beta2 - beta)
     return beta
 """
 Above is the minimax algorithm, showing that on NS perspective, North and South (dummy controlled by North) aims to
@@ -511,9 +519,10 @@ if os.path.exists("link_lookup_table.pkl"):
 else:
     link_lookup_table = dict()
 
-card_holder = np.zeros(52, dtype=int)
-card_rank = np.arange(52)
-card_suit = np.arange(4)
+card_holder = np.empty(52, dtype=int)
+card_holder.fill(-1)
+card_rank = np.arange(52).tolist()
+card_suit = np.arange(4).tolist()
 for j in Nindex:
     card_holder[j] = 0
 for j in Eindex:
@@ -522,9 +531,9 @@ for j in Sindex:
     card_holder[j] = 2
 for j in Windex:
     card_holder[j] = 3
-suit_level_links = np.resize(card_holder, (4, 13))
+suit_level_links = np.resize(card_holder, (4, 13)).tolist()
 suit_level_links = dict(zip(card_suit, suit_level_links))
-card_holder_dict = dict(zip(card_rank, card_holder))
+card_holder_dict = dict(zip(card_rank, card_holder.tolist()))
 play = [-1] * 52
 
 # Case 1: Trump = NT
