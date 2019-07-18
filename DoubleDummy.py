@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import math
 
 INPUT_METHOD = 0  # 0 for console, 1 for file
 INPUT_FILE_NAME = ""  # file name for input
@@ -11,21 +12,14 @@ Card code ranges from 0 to 51,
 Order: Higher suits are assigned higher codes. Clubs are assigned 0-12, diamonds 13-25, hearts 26-38, and spades 39-51.
 Higher ranks are assigned higher codes. 2 of Club is assigned 0. 
 """
-
-
-def comp(a, b):
-    """
-    compares if card ranks a and b belong to the same suit
-    :param a: card rank of card one
-    :param b: card rank of card two
-    :return: boolean True or False indicating whether the cards belong to the same suit
-    """
-    return a//13 == b//13
+remaining_cards = [0] * 13
 
 
 def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
+    # print(state, trump, alpha, beta, NS, EW, "max")
     global play
     global card_holder_dict
+    global remaining_cards
     a = NS
     b = EW
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
@@ -33,27 +27,39 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
     if m == 4:
         winning_card = state[0][0]
         for i in range(1, 4):
-            if trump == 5:
-                if comp(state[i][0], winning_card) and state[i][0] > winning_card:
-                    winning_card = state[i][0]
-            else:
-                if (comp(state[i][0], winning_card) and play[i] > winning_card) or (state[i][0] // 13 == trump - 1 and winning_card // 13 != trump - 1):
-                    winning_card = state[i][0]
+            if (state[i][0] // 13 == winning_card // 13 and state[i][0] > winning_card) or (state[i][0] // 13 == trump - 1 and winning_card // 13 != trump - 1):
+                winning_card = state[i][0]
+            # print(state[i][0], winning_card)
+        # print(winning_card, card_holder_dict[winning_card])
         if not card_holder_dict[winning_card] % 2:
-            NS += 1
-        # print(state, trump, alpha, beta, NS, EW, NS, "1")
+            NS = a + 1
+        # print(state, trump, alpha, beta, NS, EW, "=", NS, "1")
         return NS
     else:
         if not m % 4:
             playable_cards = set(state[0])
+            remaining_cards[math.ceil(m/4) - 1] = state[0] + state[1] + state[2] + state[3]
+            remaining_cards[math.ceil(m/4) - 1].sort()
         else:
             first_card = play[l]
-            if not set(filter(lambda element: comp(element, first_card), state[0])):
+            if not set(filter(lambda element: element // 13 == first_card // 13, state[0])):
                 playable_cards = set(state[0])
             else:
-                playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
+                playable_cards = set(filter(lambda element: element // 13 == first_card // 13, state[0]))
+            # print(first_card, playable_cards, state[0])
+        # print(m, state[0], playable_cards, remaining_cards[math.ceil(m/4) - 1])
         for k in playable_cards:
-            if not k % 13 or k - 1 not in playable_cards:
+            if l:
+                if remaining_cards[math.ceil(m/4) - 1].index(k):
+                    bool_consecutive_card = k // 13 != remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1] // 13 or remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1] not in playable_cards
+                    # print(k, remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1])
+                else:
+                    bool_consecutive_card = True
+            else:
+                bool_consecutive_card = not k % 13 or k - 1 not in playable_cards
+            # print(k, bool_consecutive_card)
+            if bool_consecutive_card:
+                # print(state[0], k)
                 s = state.copy()
                 t = s[0].copy()
                 play[52 - m] = k
@@ -65,7 +71,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     winning_card = play[l]
                     winner = 0
                     for i in range(l + 1, l + 4):
-                        if (comp(play[i], winning_card) and play[i] > winning_card) or (play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1):
+                        if (play[i] // 13 == winning_card // 13 and play[i] > winning_card) or (play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1):
                             winning_card = play[i]
                             winner = i - l
                     if not card_holder_dict[winning_card] % 2:
@@ -97,20 +103,18 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     # print("alpha is about to = max(min)", alpha, s, trump, alpha, beta, NS, EW)
                     alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
                     # print("alpha = max(min), ", alpha, s, trump, alpha, beta, NS, EW)
-                if l <= 16:
-                    finish = time.time()
-                    print(finish - start)
-                    quit()
                 if alpha >= beta:
-                    # print(state, trump, alpha, beta, NS, EW, beta, "2")
+                    # print(state, trump, alpha, beta, NS, EW, "=", beta, "2")
                     return beta
-    # print(state, trump, alpha, beta, NS, EW, alpha, "3")
+    # print(state, trump, alpha, beta, NS, EW, "=", alpha, "3")
     return alpha
 
 
 def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
+    # print(state, trump, alpha, beta, NS, EW, "min")
     global play
     global card_holder_dict
+    global remaining_cards
     a = NS
     b = EW
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
@@ -118,28 +122,37 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
     if m == 4:
         winning_card = state[0][0]
         for i in range(1, 4):
-            if trump == 5:
-                if comp(state[i][0], winning_card) and state[i][0] > winning_card:
-                    winning_card = state[i][0]
-            else:
-                if (comp(state[i][0], winning_card) and play[i] > winning_card) or (state[i][0] // 13 == trump - 1 and winning_card // 13 != trump - 1):
-                    winning_card = state[i][0]
+            if (state[i][0] // 13 == winning_card // 13 and state[i][0] > winning_card) or (state[i][0] // 13 == trump - 1 and winning_card // 13 != trump - 1):
+                winning_card = state[i][0]
         if card_holder_dict[winning_card] % 2:
-            EW -= 1
-        # print(state, trump, alpha, beta, NS, EW, EW, "4")
+            EW = b - 1
+        # print(state, trump, alpha, beta, NS, EW, "=", EW, "4")
         return EW
     else:
         if not m % 4:
             playable_cards = set(state[0])
+            remaining_cards[math.ceil(m/4) - 1] = state[0] + state[1] + state[2] + state[3]
+            remaining_cards[math.ceil(m/4) - 1].sort()
         else:
             first_card = play[l]
-            if not set(filter(lambda element: comp(element, first_card), state[0])):
+            if not set(filter(lambda element: element // 13 == first_card // 13, state[0])):
                 playable_cards = set(state[0])
             else:
-                playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
+                playable_cards = set(filter(lambda element: element // 13 == first_card // 13, state[0]))
             # print(first_card, playable_cards, state[0])
+        # print(state[0], playable_cards, remaining_cards[math.ceil(m/4) - 1])
         for k in playable_cards:
-            if not k % 13 or k - 1 not in playable_cards:
+            if l:
+                if remaining_cards[math.ceil(m/4) - 1].index(k):
+                    bool_consecutive_card = k // 13 != remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1] // 13 or remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1] not in playable_cards
+                    # print(k, remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1])
+                else:
+                    bool_consecutive_card = True
+            else:
+                bool_consecutive_card = k - 1 not in playable_cards or not k % 13
+            # print(k, bool_consecutive_card)
+            if bool_consecutive_card:
+                # print(state[0], k)
                 s = state.copy()
                 t = s[0].copy()
                 play[52 - m] = k
@@ -151,7 +164,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     winning_card = play[l]
                     winner = 0
                     for i in range(l + 1, l + 4):
-                        if (comp(play[i], winning_card) and play[i] > winning_card) or (play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1):
+                        if (play[i] // 13 == winning_card // 13 and play[i] > winning_card) or (play[i] // 13 == trump - 1 and winning_card // 13 != trump - 1):
                             winning_card = play[i]
                             winner = i - l
                     if not card_holder_dict[winning_card] % 2:
@@ -179,14 +192,10 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                 else:
                     beta = min(beta, MIN_VALUE(s, trump, alpha, beta, NS, EW))
-                if l <= 16:
-                    finish = time.time()
-                    print(finish - start)
-                    quit()
                 if alpha >= beta:
-                    # print(state, trump, alpha, beta, NS, EW, alpha, "5")
+                    # print(state, trump, alpha, beta, NS, EW, "=", alpha, "5")
                     return alpha
-    # print(state, trump, alpha, beta, NS, EW, beta, "6")
+    # print(state, trump, alpha, beta, NS, EW, "=", beta, "6")
     return beta
 """
 Above is the minimax algorithm, showing that on NS perspective, North and South (dummy controlled by North) aims to
@@ -334,10 +343,10 @@ def input_hands_from_file(filename, number_of_hands):
 play = [-1] * 52
 card_holder = [-1] * 52
 card_rank = list(range(52))
-s = [0, 2, 4, 5, 10, 15, 20, 23, 24, 31, 33, 34, 36]
-w = [6, 7, 9, 11, 12, 13, 22, 26, 28, 30, 32, 37, 38]
-n = [1, 3, 14, 16, 29, 39, 40, 41, 42, 43, 44, 45, 50]
-e = [8, 17, 18, 19, 21, 25, 27, 35, 46, 47, 48, 49, 51]
+s = [15, 20, 23, 24, 31, 33, 34, 36]
+w = [6, 7, 9, 11, 13, 22, 28, 32]
+n = [1, 3, 14, 16, 29, 43, 45, 50]
+e = [8, 17, 18, 19, 21, 25, 27, 35]
 for j in s:
     card_holder[j] = 0
 for j in w:
@@ -348,8 +357,9 @@ for j in e:
     card_holder[j] = 3
 card_holder_dict = dict(zip(card_rank, card_holder))
 start = time.time()
-print(MAX_VALUE(state=[n, e, s, w], trump=5, alpha=0, beta=len(n), NS=0, EW=len(n)))
+c = MAX_VALUE(state=[n, e, s, w], trump=5, alpha=0, beta=len(n), NS=0, EW=len(n))
 finish = time.time()
+print(c)
 print(finish - start)
 quit()
 
