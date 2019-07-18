@@ -7,10 +7,11 @@ import pickle
 
 INPUT_METHOD = 1  # 0 for console, 1 for file
 INPUT_FILE_NAME = "input.txt"  # file name for input
-LINK_LEVEL = 3 # number of remaining tricks to be stored - 1
-HASH_MOD = [64,65536,536870912,8589934592]
+LINK_LEVEL = 7 # number of remaining tricks to be stored - 1
+HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904]
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
+TEST_L = 8
 """
 Card code ranges from 0 to 51,
 Order: Higher suits are assigned higher codes. Clubs are assigned 0-12, diamonds 13-25, hearts 26-38, and spades 39-51.
@@ -105,17 +106,20 @@ class SuitLevelLinks:
 
 def comp(a, b):
     return a//13 == b//13
+def pickle_dump_link_lookup_table():
+    f = open("link_lookup_table.pkl", 'wb+')
+    pickle.dump(link_lookup_table, f, pickle.HIGHEST_PROTOCOL)
+    f.close()
 
-
-def update_link_lookup_table(suit_level_links, min, max):
+def update_link_lookup_table(suit_level_links, NS_min, EW_min):
     global link_lookup_table
     if suit_level_links in link_lookup_table:
-        min1, max1 = link_lookup_table[suit_level_links]
-        min1 = min1 if min1 > min else min
-        max1 = max1 if max1 < max else max
-        link_lookup_table[suit_level_links] = (min1, max1)
+        NS_min1, EW_min1 = link_lookup_table[suit_level_links]
+        NS_min1 = NS_min1 if NS_min1 > NS_min else NS_min
+        EW_min1 = EW_min1 if EW_min1 > EW_min else EW_min
+        link_lookup_table[suit_level_links] = (NS_min1, EW_min1)
     else:
-        link_lookup_table[suit_level_links] = (min, max)
+        link_lookup_table[suit_level_links] = (NS_min, EW_min)
 
 def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
     global play
@@ -139,9 +143,9 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                 links = SuitLevelLinks(suit_level_links, trump, cur_player)
                 if links in link_lookup_table:
                     remaining_NS, remaining_EW = link_lookup_table[links]
-                    if remaining_NS == remaining_NS:
-                        assert NS + remaining_NS == EW - remaining_NS, "NS EW should be the same if" \
-                                                                                  " remaining is determined"
+                    if remaining_EW + remaining_NS == m // 4:
+                        assert NS + remaining_NS == EW - remaining_EW, "NS EW should be the same if" \
+                            " remaining is determined" + str(remaining_NS) + str(remaining_EW)
                         return NS + remaining_NS
                     if remaining_NS + NS >= beta:      # remaining_NS + NS = alpha
                         return remaining_NS + NS
@@ -191,18 +195,21 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                         s = state[winner + 1:] + state[:winner + 1]
                         alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
                         EW += 1
-                if l <= 16:
+                if l <= TEST_L:
                     finish = time.time()
                     print(finish - start)
+                    pickle_dump_link_lookup_table()
                     quit()
                 state[0].add(k)                                      # give back to state
                 suit_level_links[k // 13][k % 13] = cur_player  # give back to suit_level_links
                 if alpha >= beta:
                     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-                        update_link_lookup_table(links, alpha - alpha2, 0)
+                        if alpha - alpha2 > 0:
+                            update_link_lookup_table(links, alpha - alpha2, 0)
                     return alpha
     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-        update_link_lookup_table(links, alpha - alpha2, 0)
+        if alpha - alpha2 > 0:
+            update_link_lookup_table(links, alpha - alpha2, 0)
     return alpha
 
 
@@ -229,7 +236,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                 links = SuitLevelLinks(suit_level_links, trump, cur_player)
                 if links in link_lookup_table:
                     remaining_NS, remaining_EW = link_lookup_table[links]
-                    if remaining_EW == remaining_NS:
+                    if remaining_EW + remaining_NS == m // 4:
                         assert NS + remaining_NS == EW - remaining_EW, "NS EW should be the same if" \
                                                                                   " remaining is determined"
                         return NS + remaining_NS
@@ -281,18 +288,21 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                             s = state[:]
                         beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                         NS -= 1
-                if l <= 16:
+                if l <= TEST_L:
                     finish = time.time()
                     print(finish - start)
+                    pickle_dump_link_lookup_table()
                     quit()
                 state[0].add(k)
                 suit_level_links[k // 13][k % 13] = cur_player  # give back to suit_level_links
                 if alpha >= beta:
                     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-                        update_link_lookup_table(links, 0, beta2 - beta)
+                        if beta2 - beta > 0:
+                            update_link_lookup_table(links, 0, beta2 - beta)
                     return beta
     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-        update_link_lookup_table(links, 0, beta2 - beta)
+        if beta2-beta > 0:
+            update_link_lookup_table(links, 0, beta2 - beta)
     return beta
 """
 Above is the minimax algorithm, showing that on NS perspective, North and South (dummy controlled by North) aims to
@@ -556,6 +566,4 @@ print(MAX_VALUE(state=current_state, trump=4), "S")
 print()
 
 
-f = open("link_lookup_table.pkl", 'wb+')
-pickle.dump(link_lookup_table,f,pickle.HIGHEST_PROTOCOL)
-f.close()
+pickle_dump_link_lookup_table()
