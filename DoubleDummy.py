@@ -75,7 +75,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                         s = state[winner + 1:] + state[:winner + 1]
                         alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
                         EW += 1
-                if l <= 8:
+                if l <= 16:
                     finish = time.time()
                     print(finish - start)
                     quit()
@@ -144,7 +144,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                             s = state[:]
                         beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                         NS -= 1
-                if l <= 8:
+                if l <= 16:
                     finish = time.time()
                     print(finish - start)
                     quit()
