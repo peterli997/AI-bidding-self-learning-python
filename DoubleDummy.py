@@ -6,6 +6,8 @@ import os
 INPUT_METHOD = 1  # 0 for console, 1 for file
 INPUT_FILE_NAME = "input.txt"  # file name for input
 
+TRICK_LOOKUP_TABLE = False # if using trick lookup table
+
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
 """
@@ -26,8 +28,10 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
     l = ((52 - m) // 4) * 4
     if m == 4:
         assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
-        winning_pos = int(trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))])
-        # winning_pos = decide_winner([next(iter(state[0])),next(iter(state[1])),next(iter(state[2])),next(iter(state[3]))], trump - 1)
+        if TRICK_LOOKUP_TABLE:
+            winning_pos = int(trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))])
+        else:
+            winning_pos = decide_winner([next(iter(state[0])), next(iter(state[1])), next(iter(state[2])), next(iter(state[3]))], trump - 1)
         if winning_pos % 2 == 0:
             NS += 1
         return NS
@@ -48,8 +52,10 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     s = [state[1], state[2], state[3], state[0]]
                     alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
                 else:     # end of trick
-                    winner = int(trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]])
-                    # winner = decide_winner(play[l:l+4], trump - 1)
+                    if TRICK_LOOKUP_TABLE:
+                        winner = int(trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]])
+                    else:
+                        winner = decide_winner(play[l:l+4], trump - 1)
                     if winner % 2 == 1:
                         NS += 1
                         if NS > alpha:
@@ -94,9 +100,11 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
     l = ((52 - m) // 4) * 4
     if m == 4:
         assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
-        winning_pos = int(trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))])
-        # winning_pos = decide_winner(
-        #     [next(iter(state[0])), next(iter(state[1])), next(iter(state[2])), next(iter(state[3]))], trump - 1)
+        if TRICK_LOOKUP_TABLE:
+            winning_pos = int(trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))])
+        else:
+            winning_pos = decide_winner(
+                [next(iter(state[0])), next(iter(state[1])), next(iter(state[2])), next(iter(state[3]))], trump - 1)
         if winning_pos % 2 == 1:
             NS += 1
         return NS
@@ -117,8 +125,10 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     s = [state[1], state[2], state[3], state[0]]
                     beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                 else:
-                    winner = int(trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]])
-                    # winner = decide_winner(play[l:l + 4], trump - 1)
+                    if TRICK_LOOKUP_TABLE:
+                        winner = int(trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]])
+                    else:
+                        winner = decide_winner(play[l:l + 4], trump - 1)
                     if winner % 2 != 0:
                         EW -= 1
                         if EW < beta:
@@ -366,11 +376,11 @@ print("W")
 print(hand_to_string(Windex))
 print("E")
 print(hand_to_string(Eindex))
-
-if os.path.exists("trick_lookup_table.npy"):
-    trick_lookup_table = np.load("trick_lookup_table.npy")
-else:
-    create_lookup_table()
+if TRICK_LOOKUP_TABLE:
+    if os.path.exists("trick_lookup_table.npy"):
+        trick_lookup_table = np.load("trick_lookup_table.npy")
+    else:
+        create_lookup_table()
 
 card_holder = np.zeros(52, dtype=int)
 card_rank = np.arange(52)
