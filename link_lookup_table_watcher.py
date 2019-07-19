@@ -85,16 +85,21 @@ class SuitLevelLinks:
         return result + (1 + self.cache_links_hash[1]) % 17
 
 
+def main(file):
+    link_lookup_table = pickle.load(file)
+    it = iter(link_lookup_table)
+    while True:
+        a = it.__next__()
+        if len(a) % 4 != 0:
+            print(len(a), a)
+
+
 if DETAILED_LINK_OBJ:
-    with open("detailed_link_lookup_table.pkl", 'rb') as f:
-        link_lookup_table = pickle.load(f)
-        it = iter(link_lookup_table)
-        while True:
-            a = it.__next__()
-            if len(a) % 4 != 0:
-                print(len(a), a)
+    with open("detailed_link_lookup_table.pkl", 'rb') as file:
+        main(file)
 else:
-    with open("compressed_link_lookup_table.pkl", 'rb') as f:
-        link_lookup_table = pickle.load(f)
-        two_card_table = set(map(lambda x: len(x), link_lookup_table.keys()))
-        print(two_card_table)
+    with open("compressed_link_lookup_table.pkl", 'rb') as file:
+        main(file)
+
+
+

@@ -12,13 +12,15 @@ INPUT_FILE_NAME = "input.txt"  # file name for input
 
 TRICK_LOOKUP_TABLE = False # if using trick lookup table
 
-LINK_LEVEL = 7 # number of remaining tricks to be stored - 1
-HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904]
+LINK_LEVEL = 9 # number of remaining tricks to be stored - 1
+HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,
+            4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,
+            4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904]
 DETAILED_LINK_OBJ = True # if links are stored
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = 16  # -1 for complete run
+TEST_L = 8 # -1 for complete run
 """
 Card code ranges from 0 to 51,
 Order: Higher suits are assigned higher codes. Clubs are assigned 0-12, diamonds 13-25, hearts 26-38, and spades 39-51.
@@ -61,25 +63,26 @@ class SuitLink:
 class SuitLevelLinks:
     def __init__(self, link_dict, trump, leader=0):
         if leader != 0:
-            links = set()
+            links = collections.Counter()
             link_trump = SuitLink([])
             for i, link in link_dict.items():
                 if i == trump - 1:
                     link_trump = SuitLink([(x - leader) % 4 for x in link if x != -1])
-                else:
-                    links.add(SuitLink([(x - leader) % 4 for x in link if x != -1]))
+                elif link != [-1] * 13:
+                    links[SuitLink([(x - leader) % 4 for x in link if x != -1])] += 1
         else:
-            links = {SuitLink(y) for x, y in link_dict.items() if x != trump - 1}
+            links = collections.Counter([SuitLink(y) for x, y in link_dict.items() if x != trump - 1 and y != [-1] * 13])
             link_trump = SuitLink(link_dict[trump-1]) if trump != 5 else SuitLink([])
         if DETAILED_LINK_OBJ:
             self.links = (links, link_trump)
-        self.cache_links_hash = ({x.__hash__() for x in links}, link_trump.__hash__())
+        self.cache_links_hash = (collections.Counter([x.__hash__() for x in links.elements()]), link_trump.__hash__())
         self.cache_hash = self.hashing(self.cache_links_hash)
+        # assert len(self) % 4 == 0
 
     def __str__(self):
         if DETAILED_LINK_OBJ:
             result = "{"
-            for i in self.links[0]:
+            for i in self.links[0].elements():
                 result += str(i)
                 result += ', '
             result += '}'
@@ -90,8 +93,8 @@ class SuitLevelLinks:
     @staticmethod
     def hashing(links_hash):
         hashed = links_hash[1]
-        for i in sorted(links_hash[0]):
-            hashed = (hashed * 872415239 + i) % HASH_MOD[LINK_LEVEL]  # it is a prime above max hash of link
+        for i in sorted(links_hash[0].elements()):
+            hashed = (hashed * 1140850699 + i) % HASH_MOD[LINK_LEVEL]  # it is a prime above max hash of link
         return hashed
 
     def __hash__(self):
@@ -104,16 +107,10 @@ class SuitLevelLinks:
 
     def __len__(self):
         result = 0
-        for i in self.cache_links_hash[0]:
+        for i in self.cache_links_hash[0].elements():
             result += (i+1) % 17
         return result + (1 + self.cache_links_hash[1]) % 17
 
-
-def comp(a, b):
-    return a//13 == b//13
-
-
-remaining_cards = [0] * 13
 
 
 def pickle_dump_link_lookup_table():
@@ -129,6 +126,8 @@ def update_link_lookup_table(suit_level_links, NS_min, EW_min):
     global link_lookup_table
     if suit_level_links in link_lookup_table:
         NS_min1, EW_min1 = link_lookup_table[suit_level_links]
+        # assert NS_min > NS_min1, "stored NS value should change"
+        # assert EW_min > EW_min1, "stored EW value should change"
         NS_min1 = NS_min1 if NS_min1 > NS_min else NS_min
         EW_min1 = EW_min1 if EW_min1 > EW_min else EW_min
         link_lookup_table[suit_level_links] = (NS_min1, EW_min1)
@@ -143,7 +142,6 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
     global suit_level_links
     global link_lookup_table
     global start
-    global remaining_cards
     alpha2 = alpha
 
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
@@ -159,9 +157,12 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
         return NS
     else:
         cur_player = card_holder_dict[next(iter(state[0]))]
-        if not m % 4:
+        if m % 4 == 0:
             if m <= LINK_LEVEL * 4 + 4:
                 links = SuitLevelLinks(suit_level_links, trump, cur_player)
+                if len(links) != m:
+                    pass
+                assert len(links) == m, str(m)+ str(links)
                 if links in link_lookup_table:
                     remaining_NS, remaining_EW = link_lookup_table[links]
                     if remaining_EW + remaining_NS == m // 4:
@@ -169,13 +170,18 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                             " remaining is determined" + str(remaining_NS) + str(remaining_EW)
                         # print("max, read from lookup table, completely searched", state, remaining_NS, remaining_EW)
                         return NS + remaining_NS
-                    if remaining_NS + NS >= beta:      # remaining_NS + NS = alpha
-                        # print("max, read from lookup table, partially searched", state, remaining_NS, remaining_EW)
-                        return remaining_NS + NS
+                    if remaining_NS + NS > alpha:
+                        alpha = remaining_NS + NS
+                        alpha2 = alpha
+                        if alpha >= beta:      # remaining_NS + NS = alpha
+                            # print("max, read from lookup table, partially searched", state, remaining_NS, remaining_EW)
+                            return remaining_NS + NS
                     # EW -= m // 4 - remaining_tricks
-                    if EW - remaining_EW <= alpha:  # EW - m % 4 + remaining_EW = beta
-                        # print("max, read from lookup table, partially searched", state, remaining_NS, remaining_EW)
-                        return alpha
+                    if EW - remaining_EW < beta:
+                        beta = EW - remaining_EW
+                        if beta <= alpha:  # EW - m % 4 + remaining_EW = beta
+                            # print("max, read from lookup table, partially searched", state, remaining_NS, remaining_EW)
+                            return alpha
             playable_cards = state[0].copy()
             # remaining_cards[math.ceil(m / 4) - 1] = state[0] | state[1] | state[2] | state[3]
             # # remaining_cards[math.ceil(m / 4) - 1].sort()  ########################################
@@ -262,11 +268,11 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     # print(state, trump, alpha, beta, NS, EW, "=", beta, "2")
                     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
                         if alpha - alpha2 > 0:
-                            update_link_lookup_table(links, alpha - alpha2, 0)
+                            update_link_lookup_table(links, alpha - NS, 0)
                     return alpha
     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
         if alpha - alpha2 > 0:
-            update_link_lookup_table(links, alpha - alpha2, 0)
+            update_link_lookup_table(links, alpha - NS, 0)
     # print(state, trump, alpha, beta, NS, EW, "=", alpha, "3")
     return alpha
 
@@ -303,17 +309,22 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                                                                                   " remaining is determined"
                         # print("min, read from lookup table, completely searched", state, remaining_EW, remaining_NS)
                         return NS + remaining_NS
-                    if remaining_NS + NS >= beta:      # remaining_NS + NS = alpha
-                        # print("min, read from lookup table, partially searched", state, remaining_EW, remaining_NS)
-                        return beta
+                    if remaining_NS + NS > alpha:
+                        alpha = remaining_NS + NS
+                        if alpha >= beta:  # remaining_NS + NS = alpha
+                            # print("min, read from lookup table, partially searched", state, remaining_EW, remaining_NS)
+                            return beta
                     # EW -= m // 4 - remaining_tricks
-                    if EW - remaining_EW <= alpha:  # EW - m % 4 + remaining_EW = beta
-                        # print("min, read from lookup table, partially searched", state, remaining_EW, remaining_NS)
-                        return EW - remaining_EW
+                    if EW - remaining_EW < beta:
+                        beta = EW - remaining_EW
+                        beta2 = beta
+                        if beta <= alpha:  # EW - m % 4 + remaining_EW = beta
+                            # print("min, read from lookup table, partially searched", state, remaining_EW, remaining_NS)
+                            return EW - remaining_EW
             playable_cards = state[0].copy()
         else:
             first_card = play[l]
-            playable_cards = set(filter(lambda element: comp(element, first_card), state[0]))
+            playable_cards = set(filter(lambda element: element//13 == first_card//13, state[0]))
             if not playable_cards:
                 playable_cards = state[0].copy()
         for k in playable_cards:
@@ -386,11 +397,11 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     # print(state, trump, alpha, beta, NS, EW, "=", alpha, "5")
                     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
                         if beta2 - beta > 0:
-                            update_link_lookup_table(links, 0, beta2 - beta)
+                            update_link_lookup_table(links, 0, EW - beta)
                     return beta
     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
         if beta2-beta > 0:
-            update_link_lookup_table(links, 0, beta2 - beta)
+            update_link_lookup_table(links, 0, EW - beta)
     # print(state, trump, alpha, beta, NS, EW, "=", beta, "6")
     return beta
 """
@@ -660,18 +671,27 @@ def main():
     current_state = [Nindex, Eindex, Sindex, Windex]
     start = time.time()
     print(MAX_VALUE(state=current_state, trump=5, alpha=0, beta=13, NS=0, EW=13), "NT")
+    end = time.time()
+    print(end-start)
     # Case 2：Trump = C
     start = time.time()
     print(MAX_VALUE(state=current_state, trump=1), "C")
+    end = time.time()
+    print(end-start)
     # Case 3: Trump = D
     start = time.time()
     print(MAX_VALUE(state=current_state, trump=2), "D")
+    end = time.time()
+    print(end-start)
     # Case 4: Trump = H
     start = time.time()
     print(MAX_VALUE(state=current_state, trump=3), "H")
+    end = time.time()
+    print(end-start)
     # Case 5: Trump = S
     start = time.time()
     print(MAX_VALUE(state=current_state, trump=4), "S")
+    print(end-start)
     print()
     pickle_dump_link_lookup_table()
 
