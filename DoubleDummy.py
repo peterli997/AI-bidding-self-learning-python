@@ -20,7 +20,7 @@ DETAILED_LINK_OBJ = True # if links are stored
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = 8 # -1 for complete run
+TEST_L = 16 # -1 for complete run
 """
 Card code ranges from 0 to 51,
 Order: Higher suits are assigned higher codes. Clubs are assigned 0-12, diamonds 13-25, hearts 26-38, and spades 39-51.
@@ -215,7 +215,6 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                 state[0].remove(k)                    # remove from state
                 # print("max-in", state, k)
                 assert suit_level_links[k//13][k % 13] == cur_player
-                suit_level_links[k//13][k % 13] = -1  # remove from suit_level_links
                 if m % 4 != 1:   # not end of trick
                     s = [state[1], state[2], state[3], state[0]]
                     alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
@@ -231,14 +230,18 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                             alpha = NS
                             if alpha >= beta:
                                 state[0].add(k)
-                                suit_level_links[k // 13][k % 13] = cur_player
-
                                 return alpha
                         if winner == 3:
                             s = state[:]
                         else:
                             s = state[2:] + state[:2]
+                        for k in play[l:l+4]:
+                            suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
                         alpha = max(alpha, MAX_VALUE(s, trump, alpha, beta, NS, EW))
+                        temp_player = (cur_player + 1) % 4
+                        for k in play[l:l+4]:
+                            suit_level_links[k // 13][k % 13] = temp_player  # return back to suit_level_links
+                            temp_player = (temp_player + 1) % 4
                         # print("alpha = max(max), ", alpha, s, trump, alpha, beta, NS, EW)
                         # print("max-out", state, k)
                         NS -= 1
@@ -248,12 +251,16 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                             beta = EW
                             if alpha >= beta:
                                 state[0].add(k)
-                                suit_level_links[k // 13][k % 13] = cur_player
-
                                 return alpha
                         s = state[winner + 1:] + state[:winner + 1]
                         # print("alpha is about to = max(min)", alpha, s, trump, alpha, beta, NS, EW)
+                        for k in play[l:l+4]:
+                            suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
                         alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
+                        temp_player = (cur_player + 1) % 4
+                        for k in play[l:l+4]:
+                            suit_level_links[k // 13][k % 13] = temp_player  # return back to suit_level_links
+                            temp_player = (temp_player + 1) % 4
                         # print("alpha = max(min), ", alpha, s, trump, alpha, beta, NS, EW)
                         # print("max-out", state, k)
                         EW += 1
@@ -263,7 +270,6 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     pickle_dump_link_lookup_table()
                     quit()
                 state[0].add(k)                                      # give back to state
-                suit_level_links[k // 13][k % 13] = cur_player  # give back to suit_level_links
                 if alpha >= beta:
                     # print(state, trump, alpha, beta, NS, EW, "=", beta, "2")
                     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
@@ -348,8 +354,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                 play[52 - m] = k
                 state[0].remove(k)
                 # print("min-out", state, k)
-                assert suit_level_links[k // 13][k % 13] == cur_player
-                suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
+
                 if m % 4 != 1:
                     s = [state[1], state[2], state[3], state[0]]
                     beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
@@ -364,11 +369,16 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                         if EW < beta:
                             beta = EW
                             if alpha >= beta:
-                                suit_level_links[k // 13][k % 13] = cur_player
                                 state[0].add(k)
                                 return beta
                         s = state[winner + 1:] + state[:winner + 1]
+                        for k in play[l:l+4]:
+                            suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
                         beta = min(beta, MIN_VALUE(s, trump, alpha, beta, NS, EW))
+                        temp_player = (cur_player + 1) % 4
+                        for k in play[l:l+4]:
+                            suit_level_links[k // 13][k % 13] = temp_player  # return back to suit_level_links
+                            temp_player = (temp_player + 1) % 4
                         # print("min-out", state, k)
                         EW += 1
                     else:
@@ -377,13 +387,18 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                             alpha = NS
                             if alpha >= beta:
                                 state[0].add(k)
-                                suit_level_links[k // 13][k % 13] = cur_player
                                 return beta
                         if winner != 3:
                             s = state[winner + 1:] + state[:winner + 1]
                         else:
                             s = state[:]
+                        for k in play[l:l+4]:
+                            suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
                         beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
+                        temp_player = (cur_player + 1) % 4
+                        for k in play[l:l + 4]:
+                            suit_level_links[k // 13][k % 13] = temp_player  # return back to suit_level_links
+                            temp_player = (temp_player + 1) % 4
                         # print("min-in", state, k)
                         NS -= 1
                 if l <= TEST_L:
@@ -392,7 +407,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     pickle_dump_link_lookup_table()
                     quit()
                 state[0].add(k)
-                suit_level_links[k // 13][k % 13] = cur_player  # give back to suit_level_links
+
                 if alpha >= beta:
                     # print(state, trump, alpha, beta, NS, EW, "=", alpha, "5")
                     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
@@ -665,32 +680,32 @@ def main():
     # card_holder_dict is a dictionary that sends every card to the player that holds it in the beginning
     play = [-1] * 52
     # play stores card codes of cards that have been played in order, and -1 represents haven't reached that turn yet
-
+    play_len = len(Windex)
     # Case 1: Trump = NT
     # print(type(Windex), type(Sindex), type(Eindex), type(Nindex))
     current_state = [Nindex, Eindex, Sindex, Windex]
     start = time.time()
-    print(MAX_VALUE(state=current_state, trump=5, alpha=0, beta=13, NS=0, EW=13), "NT")
+    print(MAX_VALUE(state=current_state, trump=5, alpha=0, beta=play_len, NS=0, EW= play_len), "NT")
     end = time.time()
     print(end-start)
     # Case 2：Trump = C
     start = time.time()
-    print(MAX_VALUE(state=current_state, trump=1), "C")
+    print(MAX_VALUE(state=current_state, trump=1, alpha=0, beta=play_len, NS=0, EW= play_len), "C")
     end = time.time()
     print(end-start)
     # Case 3: Trump = D
     start = time.time()
-    print(MAX_VALUE(state=current_state, trump=2), "D")
+    print(MAX_VALUE(state=current_state, trump=2, alpha=0, beta=play_len, NS=0, EW=play_len), "D")
     end = time.time()
     print(end-start)
     # Case 4: Trump = H
     start = time.time()
-    print(MAX_VALUE(state=current_state, trump=3), "H")
+    print(MAX_VALUE(state=current_state, trump=3, alpha=0, beta=play_len, NS=0, EW= play_len), "H")
     end = time.time()
     print(end-start)
     # Case 5: Trump = S
     start = time.time()
-    print(MAX_VALUE(state=current_state, trump=4), "S")
+    print(MAX_VALUE(state=current_state, trump=4, alpha=0, beta=play_len, NS=0, EW= play_len), "S")
     print(end-start)
     print()
     pickle_dump_link_lookup_table()

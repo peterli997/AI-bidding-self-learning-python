@@ -96,15 +96,10 @@ def main(file):
     while True:
         try:
             a = it.__next__()
-
-            if len(a) //4 == 2:
-                count += 1
-                # print(len(a), a)
+            if len(a) <= 8 and SuitLink([2,3,1,1]) in a.links[0] and SuitLink([0]) in a.links[0]:
                 NS, EW = link_lookup_table[a]
-                if NS + EW == 2:
-                    complete_count += 1
-                else:
-                    print(a, NS, EW)
+                print(a, NS, EW)
+
         except StopIteration:
             break
     print(count, complete_count)
