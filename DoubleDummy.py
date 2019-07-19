@@ -187,7 +187,13 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
             # print(first_card, playable_cards, state[0])
         # print(m, state[0], playable_cards, remaining_cards[math.ceil(m/4) - 1])
         for k in playable_cards:
-            bool_consecutive_card = suit_level_links[k//13][:k % 13] == [-1] * (k % 13)
+            bool_consecutive_card = True
+            temp_link = suit_level_links[k//13]
+            for i in range(k % 13 - 1, -1, -1):
+                if temp_link[i] != -1:
+                    if temp_link[i] == cur_player:
+                        bool_consecutive_card = False
+                    break
             # if l:
             #     if remaining_cards[math.ceil(m/4) - 1].index(k):
             #         bool_consecutive_card = k // 13 != remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1] // 13 or remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1] not in playable_cards
@@ -320,7 +326,13 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
             # else:
             #     bool_consecutive_card = k - 1 not in playable_cards or not k % 13
             # # print(k, bool_consecutive_card)
-            bool_consecutive_card = suit_level_links[k // 13][:k % 13] == [-1] * (k % 13)
+            bool_consecutive_card = True
+            temp_link = suit_level_links[k // 13]
+            for i in range(k % 13 - 1, -1, -1):
+                if temp_link[i] != -1:
+                    if temp_link[i] == cur_player:
+                        bool_consecutive_card = False
+                    break
             if bool_consecutive_card:
                 play[52 - m] = k
                 state[0].remove(k)
