@@ -103,7 +103,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     # print("alpha is about to = max(min)", alpha, s, trump, alpha, beta, NS, EW)
                     alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
                     # print("alpha = max(min), ", alpha, s, trump, alpha, beta, NS, EW)
-                if l <= 8:
+                if l <= 16:
                     finish = time.time()
                     print(finish - start)
                     quit()
@@ -196,7 +196,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                 else:
                     beta = min(beta, MIN_VALUE(s, trump, alpha, beta, NS, EW))
-                if l <= 8:
+                if l <= 16:
                     finish = time.time()
                     print(finish - start)
                     quit()
