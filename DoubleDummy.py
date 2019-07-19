@@ -103,6 +103,10 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                     # print("alpha is about to = max(min)", alpha, s, trump, alpha, beta, NS, EW)
                     alpha = max(alpha, MIN_VALUE(s, trump, alpha, beta, NS, EW))
                     # print("alpha = max(min), ", alpha, s, trump, alpha, beta, NS, EW)
+                if l <= 8:
+                    finish = time.time()
+                    print(finish - start)
+                    quit()
                 if alpha >= beta:
                     # print(state, trump, alpha, beta, NS, EW, "=", beta, "2")
                     return beta
@@ -192,6 +196,10 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
                 else:
                     beta = min(beta, MIN_VALUE(s, trump, alpha, beta, NS, EW))
+                if l <= 8:
+                    finish = time.time()
+                    print(finish - start)
+                    quit()
                 if alpha >= beta:
                     # print(state, trump, alpha, beta, NS, EW, "=", alpha, "5")
                     return alpha
@@ -343,10 +351,10 @@ def input_hands_from_file(filename, number_of_hands):
 play = [-1] * 52
 card_holder = [-1] * 52
 card_rank = list(range(52))
-s = [15, 20, 23, 24, 31, 33, 34, 36, 47]
-w = [6, 7, 9, 11, 13, 22, 28, 32, 48]
-n = [1, 3, 14, 16, 29, 43, 45, 49, 50]
-e = [8, 17, 18, 19, 21, 25, 27, 35, 44]
+n = [0, 11, 15, 22, 25, 27, 33, 35, 38, 40, 41, 45, 47]
+w = [1, 7, 9, 12, 21, 24, 30, 31, 36, 39, 43, 44, 48]
+s = [3, 6, 8, 13, 17, 18, 19, 23, 32, 34, 37, 50, 51]
+e = [2, 4, 5, 10, 14, 16, 20, 26, 28, 29, 33, 42, 46]
 for j in s:
     card_holder[j] = 0
 for j in w:
@@ -357,9 +365,29 @@ for j in e:
     card_holder[j] = 3
 card_holder_dict = dict(zip(card_rank, card_holder))
 start = time.time()
-c = MAX_VALUE(state=[n, e, s, w], trump=5, alpha=0, beta=len(n), NS=0, EW=len(n))
+c = MAX_VALUE(state=[n, w, s, e], trump=5, alpha=0, beta=len(n), NS=0, EW=len(n))
 finish = time.time()
-print(c)
+print(c, "NT")
+print(finish - start)
+start = time.time()
+c = MAX_VALUE(state=[n, w, s, e], trump=1, alpha=0, beta=len(n), NS=0, EW=len(n))
+finish = time.time()
+print(c, "C")
+print(finish - start)
+start = time.time()
+c = MAX_VALUE(state=[n, w, s, e], trump=2, alpha=0, beta=len(n), NS=0, EW=len(n))
+finish = time.time()
+print(c, "D")
+print(finish - start)
+start = time.time()
+c = MAX_VALUE(state=[n, w, s, e], trump=3, alpha=0, beta=len(n), NS=0, EW=len(n))
+finish = time.time()
+print(c, "H")
+print(finish - start)
+start = time.time()
+c = MAX_VALUE(state=[n, w, s, e], trump=4, alpha=0, beta=len(n), NS=0, EW=len(n))
+finish = time.time()
+print(c, "S")
 print(finish - start)
 quit()
 
