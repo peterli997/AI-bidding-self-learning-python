@@ -2,7 +2,7 @@ import numpy as np
 import time
 from itertools import permutations
 import os
-import collections
+from collections import Counter
 import pickle
 import profile
 import math
@@ -63,26 +63,26 @@ class SuitLink:
 class SuitLevelLinks:
     def __init__(self, link_dict, trump, leader=0):
         if leader != 0:
-            links = collections.Counter()
+            links = []
             link_trump = SuitLink([])
             for i, link in link_dict.items():
                 if i == trump - 1:
                     link_trump = SuitLink([(x - leader) % 4 for x in link if x != -1])
                 elif link != [-1] * 13:
-                    links[SuitLink([(x - leader) % 4 for x in link if x != -1])] += 1
+                    links.append(SuitLink([(x - leader) % 4 for x in link if x != -1]))
         else:
-            links = collections.Counter([SuitLink(y) for x, y in link_dict.items() if x != trump - 1 and y != [-1] * 13])
+            links = [SuitLink(y) for x, y in link_dict.items() if x != trump - 1 and y != [-1] * 13]
             link_trump = SuitLink(link_dict[trump-1]) if trump != 5 else SuitLink([])
         if DETAILED_LINK_OBJ:
             self.links = (links, link_trump)
-        self.cache_links_hash = (collections.Counter([x.__hash__() for x in links.elements()]), link_trump.__hash__())
+        self.cache_links_hash = (sorted([x.__hash__() for x in links]), link_trump.__hash__())
         self.cache_hash = self.hashing(self.cache_links_hash)
         # assert len(self) % 4 == 0
 
     def __str__(self):
         if DETAILED_LINK_OBJ:
             result = "{"
-            for i in self.links[0].elements():
+            for i in self.links[0]:
                 result += str(i)
                 result += ', '
             result += '}'
@@ -93,7 +93,7 @@ class SuitLevelLinks:
     @staticmethod
     def hashing(links_hash):
         hashed = links_hash[1]
-        for i in sorted(links_hash[0].elements()):
+        for i in links_hash[0]:
             hashed = (hashed * 1140850699 + i) % HASH_MOD[LINK_LEVEL]  # it is a prime above max hash of link
         return hashed
 
@@ -107,7 +107,7 @@ class SuitLevelLinks:
 
     def __len__(self):
         result = 0
-        for i in self.cache_links_hash[0].elements():
+        for i in self.cache_links_hash[0]:
             result += (i+1) % 17
         return result + (1 + self.cache_links_hash[1]) % 17
 

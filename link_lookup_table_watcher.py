@@ -1,4 +1,5 @@
 import pickle
+# from collections import Counter
 LINK_LEVEL = 7 # number of remaining tricks to be stored - 1
 HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904]
 DETAILED_LINK_OBJ = True # if links are stored
@@ -34,23 +35,25 @@ class SuitLink:
     def __len__(self):
         return (self.cache_hash+1) % 17
 
+
 class SuitLevelLinks:
     def __init__(self, link_dict, trump, leader=0):
         if leader != 0:
-            links = set()
+            links = []
             link_trump = SuitLink([])
             for i, link in link_dict.items():
                 if i == trump - 1:
                     link_trump = SuitLink([(x - leader) % 4 for x in link if x != -1])
-                else:
-                    links.add(SuitLink([(x - leader) % 4 for x in link if x != -1]))
+                elif link != [-1] * 13:
+                    links.append(SuitLink([(x - leader) % 4 for x in link if x != -1]))
         else:
-            links = {SuitLink(y) for x, y in link_dict.items() if x != trump - 1}
+            links = [SuitLink(y) for x, y in link_dict.items() if x != trump - 1 and y != [-1] * 13]
             link_trump = SuitLink(link_dict[trump-1]) if trump != 5 else SuitLink([])
         if DETAILED_LINK_OBJ:
             self.links = (links, link_trump)
-        self.cache_links_hash = ({x.__hash__() for x in links}, link_trump.__hash__())
+        self.cache_links_hash = (sorted([x.__hash__() for x in links]), link_trump.__hash__())
         self.cache_hash = self.hashing(self.cache_links_hash)
+        # assert len(self) % 4 == 0
 
     def __str__(self):
         if DETAILED_LINK_OBJ:
@@ -66,8 +69,8 @@ class SuitLevelLinks:
     @staticmethod
     def hashing(links_hash):
         hashed = links_hash[1]
-        for i in sorted(links_hash[0]):
-            hashed = (hashed * 872415239 + i) % HASH_MOD[LINK_LEVEL]  # it is a prime above max hash of link
+        for i in links_hash[0]:
+            hashed = (hashed * 1140850699 + i) % HASH_MOD[LINK_LEVEL]  # it is a prime above max hash of link
         return hashed
 
     def __hash__(self):
@@ -88,10 +91,23 @@ class SuitLevelLinks:
 def main(file):
     link_lookup_table = pickle.load(file)
     it = iter(link_lookup_table)
+    count = 0
+    complete_count = 0
     while True:
-        a = it.__next__()
-        if len(a) % 4 != 0:
-            print(len(a), a)
+        try:
+            a = it.__next__()
+
+            if len(a) //4 == 2:
+                count += 1
+                # print(len(a), a)
+                NS, EW = link_lookup_table[a]
+                if NS + EW == 2:
+                    complete_count += 1
+                else:
+                    print(a, NS, EW)
+        except StopIteration:
+            break
+    print(count, complete_count)
 
 
 if DETAILED_LINK_OBJ:
