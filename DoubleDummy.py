@@ -20,7 +20,7 @@ DETAILED_LINK_OBJ = True # if links are stored
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = 16 # -1 for complete run
+TEST_L = 8 # -1 for complete run
 """
 Card code ranges from 0 to 51,
 Order: Higher suits are assigned higher codes. Clubs are assigned 0-12, diamonds 13-25, hearts 26-38, and spades 39-51.
@@ -412,11 +412,11 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                     # print(state, trump, alpha, beta, NS, EW, "=", alpha, "5")
                     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
                         if beta2 - beta > 0:
-                            update_link_lookup_table(links, 0, EW - beta)
+                            update_link_lookup_table(links, EW - beta, 0)
                     return beta
     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
         if beta2-beta > 0:
-            update_link_lookup_table(links, 0, EW - beta)
+            update_link_lookup_table(links, EW - beta, 0)
     # print(state, trump, alpha, beta, NS, EW, "=", beta, "6")
     return beta
 """
