@@ -13,7 +13,7 @@ TRICK_LOOKUP_TABLE = False # if using trick lookup table
 
 LINK_LEVEL = 7 # number of remaining tricks to be stored - 1
 HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904]
-DETAILED_LINK_OBJ = False # if links are stored
+DETAILED_LINK_OBJ = True # if links are stored
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
@@ -137,6 +137,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
     global card_holder_dict
     global suit_level_links
     global link_lookup_table
+    global start
     alpha2 = alpha
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
     l = ((52 - m) // 4) * 4
@@ -242,6 +243,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
     global card_holder_dict
     global suit_level_links
     global link_lookup_table
+    global start
     beta2 = beta
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
     l = ((52 - m) // 4) * 4
@@ -511,12 +513,18 @@ def create_lookup_table():
     np.save("trick_lookup_table", trick_lookup_table)
     # finish = time.time()
     # print("save using np.save() time:", finish - start)
+
+
 suit_level_links = []
+start = 0
+
+
 def main():
     global play
     global card_holder_dict
     global suit_level_links
     global link_lookup_table
+    global start
 
     RC = set(range(52))  # RC for remaining cards
     if INPUT_METHOD == 0:
@@ -612,8 +620,8 @@ def main():
     start = time.time()
     print(MAX_VALUE(state=current_state, trump=4), "S")
     print()
-
-
     pickle_dump_link_lookup_table()
 
-profile.run('main()')
+
+main()
+# profile.run('main()')
