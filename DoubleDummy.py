@@ -664,5 +664,20 @@ def main():
     pickle_dump_link_lookup_table()
 
 
-main()
-# profile.run('main()')
+if __name__ == '__main__':
+    main()
+    # profile.run('main()')
+
+
+def minMax(play1, card_holder_dict1, state1, length):
+    global play
+    global card_holder_dict
+    global start
+    play = play1
+    card_holder_dict = card_holder_dict1
+
+    start = time.time()
+    c = MAX_VALUE(state=state1, trump=5, alpha=0, beta=length, NS=0, EW=length)
+    finish = time.time()
+    print(c)
+    print(finish - start)
