@@ -112,7 +112,6 @@ class SuitLevelLinks:
         return result + (1 + self.cache_links_hash[1]) % 17
 
 
-
 def pickle_dump_link_lookup_table():
     if DETAILED_LINK_OBJ:
         f = open("detailed_link_lookup_table.pkl", 'wb+')
@@ -143,6 +142,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
     global link_lookup_table
     global start
     alpha2 = alpha
+    beta2 = beta
 
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
     l = ((52 - m) // 4) * 4
@@ -273,13 +273,14 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                 if alpha >= beta:
                     # print(state, trump, alpha, beta, NS, EW, "=", beta, "2")
                     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-                        if alpha - alpha2 > 0:
-                            update_link_lookup_table(links, alpha - NS, 0)
+                        if alpha > alpha2 or beta < beta2:
+                            update_link_lookup_table(links, alpha - NS if alpha > alpha2 else 0
+                                                     , EW - beta if beta < beta2 else 0)
                     return alpha
     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-        if alpha - alpha2 > 0:
-            update_link_lookup_table(links, alpha - NS, 0)
-    # print(state, trump, alpha, beta, NS, EW, "=", alpha, "3")
+        if alpha > alpha2 or beta < beta2:
+            update_link_lookup_table(links, alpha - NS if alpha > alpha2 else 0
+                                     , EW - beta if beta < beta2 else 0)
     return alpha
 
 
@@ -291,6 +292,7 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
     global link_lookup_table
     global start
     beta2 = beta
+    alpha2 = alpha
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
     l = ((52 - m) // 4) * 4
     if m == 4:
@@ -411,12 +413,14 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                 if alpha >= beta:
                     # print(state, trump, alpha, beta, NS, EW, "=", alpha, "5")
                     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-                        if beta2 - beta > 0:
-                            update_link_lookup_table(links, EW - beta, 0)
+                        if alpha > alpha2 or beta < beta2:
+                            update_link_lookup_table(links, EW - beta if beta < beta2 else 0,
+                                                     alpha - NS if alpha > alpha2 else 0)
                     return beta
     if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-        if beta2-beta > 0:
-            update_link_lookup_table(links, EW - beta, 0)
+        if alpha > alpha2 or beta < beta2:
+            update_link_lookup_table(links, EW - beta if beta < beta2 else 0,
+                                     alpha - NS if alpha > alpha2 else 0)
     # print(state, trump, alpha, beta, NS, EW, "=", beta, "6")
     return beta
 """
