@@ -2,7 +2,7 @@ import pickle
 # from collections import Counter
 LINK_LEVEL = 7 # number of remaining tricks to be stored - 1
 HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904]
-DETAILED_LINK_OBJ = True # if links are stored
+DETAILED_LINK_OBJ = False # if links are stored
 
 class SuitLink:
     def __init__(self, link):
@@ -96,9 +96,10 @@ def main(file):
     while True:
         try:
             a = it.__next__()
-            if len(a) <= 8 and SuitLink([2,3,1,1]) in a.links[0] and SuitLink([0]) in a.links[0]:
-                NS, EW = link_lookup_table[a]
-                print(a, NS, EW)
+            complete_count += 1
+            print(a)
+            if complete_count >= 500:
+                continue
 
         except StopIteration:
             break
