@@ -5,7 +5,6 @@ import os
 from collections import Counter
 import pickle
 import math
-import pstats
 
 INPUT_METHOD = 1  # 0 for console, 1 for file
 INPUT_FILE_NAME = "input.txt"  # file name for input
@@ -758,7 +757,7 @@ if __name__ == '__main__':
     # main()
     # import cProfile
     # cProfile.run('main()',filename="profile.out")
-
+    import pstats
     p = pstats.Stats("profile1.out")
     p.sort_stats("time").print_stats()
     p.print_callers("__hash__")
