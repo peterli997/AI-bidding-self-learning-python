@@ -245,7 +245,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                 # print("max-in", state, k)
                 assert suit_level_links[k//13][k % 13] == cur_player
                 if m % 4 != 1:   # not end of trick
-                    s = [state[1], state[2], state[3], state[0]]
+                    s = state[1:] + state[:1]
                     alpha_new, f_alpha_new = MIN_VALUE(s, trump, alpha, beta, NS, EW)
                     alpha = max(alpha, alpha_new)
                     f_alpha = max(f_alpha, f_alpha_new)
@@ -255,7 +255,7 @@ def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D =
                         winner = int(trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]])
                     else:
                         winner = decide_winner(play[l:l+4], trump - 1)
-                    if winner % 2 == 1:
+                    if winner % 2:
                         NS += 1
                         if NS > f_alpha:
                             f_alpha = NS
@@ -330,10 +330,10 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
     global start
     beta2 = beta
     alpha2 = alpha
-    f_alpha = 0,
-    f_beta = 13,
     m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
     l = ((52 - m) // 4) * 4
+    f_beta = 13 - l
+    f_beta2 = 13 - l
     if m == 4:
         assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
         if TRICK_LOOKUP_TABLE:
@@ -356,6 +356,8 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                                                                                   " remaining is determined"
                         # print("min, read from lookup table, completely searched", state, remaining_EW, remaining_NS)
                         return NS + remaining_NS
+                    f_beta = EW - remaining_EW
+                    f_beta2 = f_beta
                     if remaining_NS + NS > alpha:
                         alpha = remaining_NS + NS
                         if alpha >= beta:  # remaining_NS + NS = alpha
@@ -397,25 +399,31 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                 # print("min-out", state, k)
 
                 if m % 4 != 1:
-                    s = [state[1], state[2], state[3], state[0]]
-                    beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
+                    s = state[1:] + state[:1]
+                    beta_new, f_beta_new = MAX_VALUE(s, trump, alpha, beta, NS, EW)
+                    beta = min(beta, beta_new)
+                    f_beta = min(f_beta, f_beta_new)
                     # print("min-out", state, k)
                 else:
                     if TRICK_LOOKUP_TABLE:
                         winner = int(trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]])
                     else:
                         winner = decide_winner(play[l:l + 4], trump - 1)
-                    if winner % 2 != 0:
+                    if winner % 2:
                         EW -= 1
-                        if EW < beta:
-                            beta = EW
-                            if alpha >= beta:
-                                state[0].add(k)
-                                return beta
+                        if EW < f_beta:
+                            f_beta = EW
+                            if EW < beta:
+                                beta = EW
+                                if alpha >= beta:
+                                    state[0].add(k)
+                                    return beta, f_beta
                         s = state[winner + 1:] + state[:winner + 1]
                         for k in play[l:l+4]:
                             suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
-                        beta = min(beta, MIN_VALUE(s, trump, alpha, beta, NS, EW))
+                        beta_new, f_beta_new = MAX_VALUE(s, trump, alpha, beta, NS, EW)
+                        beta = min(beta, beta_new)
+                        f_beta = min(f_beta, f_beta_new)
                         temp_player = (cur_player + 1) % 4
                         for k in play[l:l+4]:
                             suit_level_links[k // 13][k % 13] = temp_player  # return back to suit_level_links
@@ -435,7 +443,9 @@ def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
                             s = state[:]
                         for k in play[l:l+4]:
                             suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
-                        beta = min(beta, MAX_VALUE(s, trump, alpha, beta, NS, EW))
+                        beta_new, f_beta_new = MIN_VALUE(s, trump, alpha, beta, NS, EW)
+                        beta = min(beta, beta_new)
+                        f_beta = min(f_beta, f_beta_new)
                         temp_player = (cur_player + 1) % 4
                         for k in play[l:l + 4]:
                             suit_level_links[k // 13][k % 13] = temp_player  # return back to suit_level_links
