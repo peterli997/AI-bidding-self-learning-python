@@ -617,6 +617,7 @@ def input_hands_from_file(filename, number_of_hands):
             hand_count += 1
     return hands
 
+
 def decide_winner(trick, trump):
     winning_card = trick[0]
     winner = 0
