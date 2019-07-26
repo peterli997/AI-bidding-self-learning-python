@@ -90,27 +90,27 @@ class BridgeGame:
     @staticmethod
     def calculate_score(contract, contractor, doubling, vulnerability, result):
         vul = ((contractor == POS_N or contractor == POS_S) and (vulnerability == VUL_NS or vulnerability == VUL_ALL)) or ((contractor == POS_E and contractor == POS_W) and (vulnerability == VUL_EW or vulnerability == VUL_ALL))
-        if contract[0][0] > result + 6:
+        if contract[0][0] + 6 > result:
             if not vul:
                 if doubling == BID_REDOUBLE:
-                    if contract[0][0] - result <= 8:
-                        return 200 - 400 * (contract[0][0] - result - 6)
+                    if contract[0][0] - result <= -4:
+                        return 200 - 400 * (contract[0][0] + 6 - result)
                     else:
-                        return 800 - 600 * (contract[0][0] - result - 6)
+                        return 800 - 600 * (contract[0][0] + 6 - result)
                 elif doubling == BID_DOUBLE:
                     if contract[0][0] - result <= 8:
-                        return 100 - 200 * (contract[0][0] - result - 6)
+                        return 100 - 200 * (contract[0][0] + 6 - result)
                     else:
-                        return 400 - 300 * (contract[0][0] - result - 6)
+                        return 400 - 300 * (contract[0][0] + 6 - result)
                 else:
-                    return -50 * (contract[0][0] - result - 6)
+                    return -50 * (contract[0][0] + 6 - result)
             else:
                 if doubling == BID_REDOUBLE:
-                    return 200 - 600 * (contract[0][0] - result - 6)
+                    return 200 - 600 * (contract[0][0] + 6 - result)
                 elif doubling == BID_DOUBLE:
-                    return 100 - 300 * (contract[0][0] - result - 6)
+                    return 100 - 300 * (contract[0][0] + 6 - result)
                 else:
-                    return -100 * (contract[0][0] - result - 6)
+                    return -100 * (contract[0][0] + 6 - result)
         else:
             score = 0
             if contract[1] == 1 or contract[1] == 2:
@@ -123,21 +123,21 @@ class BridgeGame:
                 contract_score *= 4
                 score += 100
                 if vul:
-                    score += 400 * (contract[0][0] - result - 6)
+                    score += 400 * (result - contract[0][0] - 6)
                 else:
-                    score += 200 * (contract[0][0] - result - 6)
+                    score += 200 * (result - contract[0][0] - 6)
             elif doubling == BID_DOUBLE:
                 contract_score *= 2
                 score += 50
                 if vul:
-                    score += 200 * (contract[0][0] - result - 6)
+                    score += 200 * (result - contract[0][0] - 6)
                 else:
-                    score += 100 * (contract[0][0] - result - 6)
+                    score += 100 * (result - contract[0][0] - 6)
             else:
                 if contract[1] == 1 or contract[1] == 2:
-                    score += 20 * (contract[0][0] - result - 6)
+                    score += 20 * (result - contract[0][0] - 6)
                 else:
-                    score += 30 * (contract[0][0] - result - 6)
+                    score += 30 * (result - contract[0][0] - 6)
             score += contract_score
             if contract_score < 100:
                 score += 50
