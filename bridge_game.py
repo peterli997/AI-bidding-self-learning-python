@@ -82,14 +82,79 @@ class BridgeGame:
                 self.contractor = self.calc_contractor()
 
     @staticmethod
-    def calculate_score(contract, vulnerability, result):  # TODO: implement this
-        if contract[0][0] == 0:
-            return 0
-        elif result >= 0:
-            pass
+    def calculate_score(contract, contractor, doubling, vulnerability, result):
+        vul = ((contractor == N or contractor == S) and (vulnerability == VUL_NS or vulnerability == VUL_ALL)) or ((contractor == E and contractor == W) and (vulnerability == VUL_EW or vulnerability == VUL_ALL))
+        if contract[0][0] > result + 6:
+            if not vul:
+                if doubling == BID_REDOUBLE:
+                    if contract[0][0] == result + 7:
+                        return -200
+                    elif 1 <= contract[0][0] - result - 6 <= 2:
+                        return 200 - 400 * (contract[0][0] - result - 6)
+                    else:
+                        return 800 - 600 * (contract[0][0] - result - 6)
+                elif doubling == BID_DOUBLE:
+                    if contract[0][0] == result + 7:
+                        return -100
+                    elif 1 <= contract[0][0] - result - 6 <= 2:
+                        return 100 - 200 * (contract[0][0] - result - 6)
+                    else:
+                        return 400 - 300 * (contract[0][0] - result - 6)
+                else:
+                    return -50 * (contract[0][0] - result - 6)
+            else:
+                if doubling == BID_REDOUBLE:
+                    return 200 - 600 * (contract[0][0] - result - 6)
+                elif doubling == BID_DOUBLE:
+                    return 100 - 300 * (contract[0][0] - result - 6)
+                else:
+                    return -100 * (contract[0][0] - result - 6)
         else:
-            pass
-        return 0
+            score = 0
+            if contract[1] == 1 or contract[1] == 2:
+                contract_score = contract[0][0] * 20
+            elif contract[1] == 3 or contract[1] == 4:
+                contract_score = contract[0][0] * 30
+            else
+                contract_score = 10 + contract[0][0] * 30
+            if doubling == BID_REDOUBLE:
+                contract_score *= 4
+                score += 100
+                if vul:
+                    score += 400 * (contract[0][0] - result - 6)
+                else:
+                    score += 200 * (contract[0][0] - result - 6)
+            elif doubling == BID_DOUBLE:
+                contract_score *= 2
+                score += 50
+                if vul:
+                    score += 200 * (contract[0][0] - result - 6)
+                else:
+                    score += 100 * (contract[0][0] - result - 6)
+            else:
+                if contract[1] == 1 or contract[1] == 2:
+                    score += 20 * (contract[0][0] - result - 6)
+                else:
+                    score += 30 * (contract[0][0] - result - 6)
+            score += contract_score
+            if contract_score < 100:
+                score += 50
+            else:
+                if vul:
+                    score += 500
+                else:
+                    score += 300
+            if contract[0][0] == 6:
+                if vul:
+                    score += 750
+                else:
+                    score += 500
+            if contract[0][0] == 7:
+                if vul:
+                    score += 1500
+                else:
+                    score += 1000
+        return score
 
     def calc_contractor(self):
         assert self.last_normal_bid != BID_PASS, "should be pass contract"
@@ -100,8 +165,15 @@ class BridgeGame:
 
 
     @staticmethod
-    def create_random_board():  # TODO: implement this
-        return 0
+    def create_random_board():
+        RC = list(range(52))
+        Nindex = list(np.random.choice(a=RC, size=13, replace=False))
+        RC = list(set(RC) - set(Nindex))
+        Sindex = list(np.random.choice(a=RC, size=13, replace=False))
+        RC = list(set(RC) - set(Sindex))
+        Windex = list(np.random.choice(a=RC, size=13, replace=False))
+        Eindex = list(set(RC) - set(Windex))
+        return Sindex, Windex, Nindex, Eindex
 
     @staticmethod
     def is_greater_bid(bid0, bid1):
@@ -154,9 +226,8 @@ class BridgeGame:
         assert self.is_done_bidding(), "Need to be done bidding"
         return self.contract
 
-    # def get_result():
-    #
-    #     return 0
+    def get_result():
+        return 0
 
     @staticmethod
     def card_value_key(card, trump, lead_suit):
