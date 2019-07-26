@@ -93,16 +93,12 @@ class BridgeGame:
         if contract[0][0] > result + 6:
             if not vul:
                 if doubling == BID_REDOUBLE:
-                    if contract[0][0] == result + 7:
-                        return -200
-                    elif 1 <= contract[0][0] - result - 6 <= 2:
+                    if contract[0][0] - result <= 8:
                         return 200 - 400 * (contract[0][0] - result - 6)
                     else:
                         return 800 - 600 * (contract[0][0] - result - 6)
                 elif doubling == BID_DOUBLE:
-                    if contract[0][0] == result + 7:
-                        return -100
-                    elif 1 <= contract[0][0] - result - 6 <= 2:
+                    if contract[0][0] - result <= 8:
                         return 100 - 200 * (contract[0][0] - result - 6)
                     else:
                         return 400 - 300 * (contract[0][0] - result - 6)
