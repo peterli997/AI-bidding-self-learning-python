@@ -1,15 +1,16 @@
 import numpy as np
-Suit = ['C', 'D', 'H', 'S']
-Rank = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-Position = ['N', 'W', 'S', 'E']
+# Suit = ['C', 'D', 'H', 'S']
+# Rank = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
+# Position = ['N', 'W', 'S', 'E']
 """
 Hands: set of cards
 Cards: (suit, rank)
 Bids: (level, trump) or (-1,) for X, (-2,) for XX, (0,) for PASS
 Contract: (Bid, doubling)
-doubling: -1 for X, -2 for XX, 0 for PASS
-suit,trump: C:1, D:2, H:3, S:4, NT:5
-rank: 2-9: 0-7, T:8, J:9, Q:10, K:11, A:12
+Penalty: 0:Pass, -1:X, -2:XX
+Suit,Trump: C:1, D:2, H:3, S:4, NT:5
+Rank: 2-9: 0-7, T:8, J:9, Q:10, K:11, A:12
+Positions: N:0, W:1, S:2, E:3
 """
 BID_1C = (1, 1)
 BID_2C = (2, 1)
@@ -20,10 +21,10 @@ BID_3D = (3, 2)
 BID_4D = (4, 2)
 BID_7NT = (7, 5)
 BID_PASS = (0,)
-CONTRACT_PASS = ((0,), 0)
 BID_DOUBLE = (-1,)
 BID_REDOUBLE = (-2,)
 BID_INVALID = (-3,)
+CONTRACT_PASS = ((0,), 0)
 CONTRACT_INVALID = (BID_INVALID, -3)
 PENALTY_DOUBLE = -1
 PENALTY_REDOUBLE = -2
@@ -39,25 +40,28 @@ VUL_EW = 1
 VUL_NS = 2
 VUL_ALL = 3
 
-
 class BridgeGame:
     """
     Class that simulates a game of bridge
     """
     def __init__(self):
-        self.bid_history = []
-        self.play_history = []
-        self.stage = STAGE_BIDDING               # or STAGE_PLAYING
-        self.contract = CONTRACT_INVALID
-        self.contractor = POS_N
-        self.current_round = []
-        self.current_leader = -1
+        # initial board
         self.vulnerability = VUL_NONE
-        self.hands = []                      # order: NWSE
-        self.last_normal_bid = BID_PASS
-        self.last_normal_bidder = -1                # index of last normal bid
-        self.last_penalty = PENALTY_PASS
-        self.NSTricks = 0
+        self.hands = []                   #          # order: NWSE
+        # Round stage
+        self.stage = STAGE_BIDDING                   # or STAGE_PLAYING
+        # Bidding
+        self.bid_history = []
+        self._last_normal_bid = BID_PASS  #
+        self._last_normal_bidder = -1     #          # index of last normal bid
+        self._last_penalty = PENALTY_PASS #
+        # Playing
+        self._contract = CONTRACT_INVALID #
+        self.contractor = POS_N           #
+        self.play_history = []
+        self._current_trick = []          #
+        self._current_player = -1         #
+        self._NSTricks = 0                #
 
     def create_random_board(self):
         self.hands = BridgeGame.create_random_board()
@@ -70,20 +74,22 @@ class BridgeGame:
         if not self.is_valid_bid(new_bid):
             return BID_INVALID
         if new_bid == BID_DOUBLE or new_bid == BID_REDOUBLE:
-            self.last_penalty = new_bid
+            self._last_penalty = new_bid
         if new_bid != BID_PASS:
-            self.last_normal_bid = new_bid
-            self.last_normal_bidder = len(self.bid_history)
+            self._last_normal_bid = new_bid
+            self._last_normal_bidder = len(self.bid_history)
         self.bid_history.append(new_bid)
         if self.is_done_bidding():
             self.stage = STAGE_PLAYING
-            self.contract = self.last_normal_bid, self.last_penalty
-            if self.contract != CONTRACT_PASS:
+            self._contract = self._last_normal_bid, self._last_penalty
+            if self._contract != CONTRACT_PASS:
                 self.contractor = self.calc_contractor()
 
+    def get_score(self, result):
+        return self.calculate_score(self._contract, self.contractor, self)
     @staticmethod
     def calculate_score(contract, contractor, doubling, vulnerability, result):
-        vul = ((contractor == N or contractor == S) and (vulnerability == VUL_NS or vulnerability == VUL_ALL)) or ((contractor == E and contractor == W) and (vulnerability == VUL_EW or vulnerability == VUL_ALL))
+        vul = ((contractor == POS_N or contractor == POS_S) and (vulnerability == VUL_NS or vulnerability == VUL_ALL)) or ((contractor == POS_E and contractor == POS_W) and (vulnerability == VUL_EW or vulnerability == VUL_ALL))
         if contract[0][0] > result + 6:
             if not vul:
                 if doubling == BID_REDOUBLE:
@@ -115,7 +121,7 @@ class BridgeGame:
                 contract_score = contract[0][0] * 20
             elif contract[1] == 3 or contract[1] == 4:
                 contract_score = contract[0][0] * 30
-            else
+            else:
                 contract_score = 10 + contract[0][0] * 30
             if doubling == BID_REDOUBLE:
                 contract_score *= 4
@@ -157,11 +163,11 @@ class BridgeGame:
         return score
 
     def calc_contractor(self):
-        assert self.last_normal_bid != BID_PASS, "should be pass contract"
-        target_trump = self.last_normal_bid[1]
-        for ind, bid in enumerate(self.play_history[self.last_normal_bidder%2::2]):
+        assert self._last_normal_bid != BID_PASS, "should be pass contract"
+        target_trump = self._last_normal_bid[1]
+        for ind, bid in enumerate(self.play_history[self._last_normal_bidder % 2::2]):
             if bid[0] > 0 and bid[1] == target_trump:
-                return ind % 2 * 2 + self.last_normal_bidder % 2
+                return ind % 2 * 2 + self._last_normal_bidder % 2
 
 
     @staticmethod
@@ -197,20 +203,20 @@ class BridgeGame:
         if not self.bid_history:
             return True if new_bid[0] > 0 else False  # allow first normal bid
         if new_bid == BID_REDOUBLE:  # redouble
-            return self.last_penalty == PENALTY_DOUBLE and (len(self.bid_history) - self.last_normal_bidder) % 2 == 0
+            return self._last_penalty == PENALTY_DOUBLE and (len(self.bid_history) - self._last_normal_bidder) % 2 == 0
             # if (len(self.bid_history) - self.last_normal_bidder) % 2 != 0:
             #     return False
             # return self.bid_history[-1] == BID_DOUBLE or (len(self.bid_history) >= 4
             #                                   and self.bid_history[-1] == BID_PASS == self.bid_history[-2] == BID_PASS
             #                                          and self.bid_history[-3] == BID_DOUBLE)
         if new_bid == BID_DOUBLE:  # double
-            return self.last_penalty == PENALTY_PASS and (len(self.bid_history) - self.last_normal_bidder) % 2 == 1
+            return self._last_penalty == PENALTY_PASS and (len(self.bid_history) - self._last_normal_bidder) % 2 == 1
             # if (len(self.bid_history) - self.last_normal_bidder) % 2 != 1:
             #     return False
             # return self.bid_history[-1][0] > 0 or
             #                                    (self.bid_history[-1] == BID_PASS == self.bid_history[-2] == BID_PASS
             #                                   and self.bid_history[-3][0] > 0)
-        return BridgeGame.is_greater_bid(new_bid, self.last_normal_bid)  # normal bid
+        return BridgeGame.is_greater_bid(new_bid, self._last_normal_bid)  # normal bid
 
     def is_done_bidding(self):
         if self.stage == STAGE_PLAYING:
@@ -224,9 +230,9 @@ class BridgeGame:
 
     def get_contract(self):
         assert self.is_done_bidding(), "Need to be done bidding"
-        return self.contract
+        return self._contract
 
-    def get_result():
+    def get_result(self):
         return 0
 
     @staticmethod

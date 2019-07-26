@@ -6,6 +6,7 @@ Round: One game consists of Bidding and Playing Stages
 Stage: Bidding / Playing
 Position: North, West, South, East
 Bid: 1C~7NT, X, XX, PASS
+Penalty: Pass, X, XX
 Vulnerability: NONE, EW, NS, ALL
 Contract: final contract + vulnerability
 Result: -7~+7
