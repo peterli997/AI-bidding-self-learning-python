@@ -11,3 +11,4 @@ Contract: final contract + vulnerability
 Result: -7~+7
 Level: 1-7 in Bid and Contract
 Board: The card distribution
+Play: A play is the process of playing a card during the playing stage.
