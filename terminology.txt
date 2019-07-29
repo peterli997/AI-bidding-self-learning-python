@@ -12,3 +12,5 @@ Contract: final contract + vulnerability
 Result: -7~+7
 Level: 1-7 in Bid and Contract
 Board: The card distribution
+Dealer: The first player to bid
+Declarer: In the playing stage, the player playing the contract
