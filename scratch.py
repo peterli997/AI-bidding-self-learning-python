@@ -46,7 +46,7 @@ class DoubleDummySolver:
 
     # TODO: remove trump
     # TODO: add N, the total number of tricks
-    def MAX_VALUE(self, state, trump, alpha=0, beta=13, NS=0, EW=0, play_number=0):  # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
+    def MAX_VALUE(self, state, trump, alpha=0, beta=0, NS=0, EW=0, play_number=0):  # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
         """
         Main method for the Min-Max algorithm.
         It is equipped with "partial" alpha-beta pruning and memoization.

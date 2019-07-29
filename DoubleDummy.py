@@ -9,17 +9,17 @@ import math
 INPUT_METHOD = 1  # 0 for console, 1 for file
 INPUT_FILE_NAME = "input.txt"  # file name for input
 
-TRICK_LOOKUP_TABLE = False # if using trick lookup table
+TRICK_LOOKUP_TABLE = False  # if using trick lookup table
 
-LINK_LEVEL = 11 # number of remaining tricks to be stored - 1
+LINK_LEVEL = 11  # number of remaining tricks to be stored - 1
 HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,
             4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,
             4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904]
-DETAILED_LINK_OBJ = False # if links are stored
+DETAILED_LINK_OBJ = False  # if links are stored
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = 16 # -1 for complete run
+TEST_L = -1 # -1 for complete run
 COLLISION_DETECTOR = dict()
 """
 Card code ranges from 0 to 51,
@@ -133,6 +133,248 @@ class SuitLevelLinks:
         return result + (1 + self.cache_links_hash[1]) % 17
 
 
+class DoubleDummySolver:
+    def __init__(self, suit_level_links, link_lookup_table, trump, state):
+        # TODO: change type(state) from set to tuple
+        self.play = [-1] * 52
+        self.card_rank = list(range(52))
+        self.card_holder = [-1] * 52
+        self.Nindex = state[0]
+        self.Eindex = state[1]
+        self.Sindex = state[2]
+        self.Windex = state[3]
+        for card in self.Nindex:
+            self.card_holder[card] = 0
+        for card in self.Eindex:
+            self.card_holder[card] = 1
+        for card in self.Sindex:
+            self.card_holder[card] = 2
+        for card in self.Windex:
+            self.card_holder[card] = 3
+        self.card_holder_dict = dict(zip(self.card_rank, self.card_holder))
+        card_suit = range(4)
+        self.suit_level_links = np.resize(self.card_holder, (4, 13)).tolist()
+        self.suit_level_links = dict(zip(card_suit, self.suit_level_links))
+        self.link_lookup_table = link_lookup_table
+        self.start = time.time()
+        self.trump = trump
+
+    def decide_winner(self, trick):
+        winning_card = trick[0]
+        winner = 0
+        for i in range(4):
+            if (trick[i] // 13 == winning_card // 13 and trick[i] > winning_card) or (
+                    trick[i] // 13 == self.trump - 1 and winning_card // 13 != self.trump - 1):
+                winning_card = trick[i]
+                winner = i
+        return winner
+
+    # TODO: remove trump
+    # TODO: add N, the total number of tricks
+    def MAX_VALUE(self, state, alpha=0, beta=0, NS=0, EW=0, play_number=0):  # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
+        """
+        Main method for the Min-Max algorithm.
+        It is equipped with "partial" alpha-beta pruning and memoization.
+        This algorithm computes the maximum number of tricks that NS can take under optimal strategies for all players.
+        The round start with North.
+        :param state: the state of the current board, tuple of four lists of hands.
+        :param trump: the trump of the current round.
+        :param alpha: alpha in alpha-beta pruning, the maximum lower bound of the true value,
+                    the minimum number of cards that the current team (team with the current player) is able to get.
+        :param beta: 13 minus beta in alpha-beta pruning, 13 minus the minimum upper bound of the true value,
+                    the minimum number of cards that the other team is able to get.
+        :param NS: the current number of tricks that the current team has taken.
+        :param EW: the current number of tricks that the other team has taken.
+        :param play_number: the number of the current play.
+        :return: (returned_)alpha, the maximum number of tricks the team of the first player can get,
+                 f_NS, the maximum number of tricks remaining for the team of the first player,
+                 f_EW, the maximum number of tricks remaining for the other team.
+                 beta is not returned since it is not used.
+                 It is guaranteed that f_NS, f_EW satisfy the following:
+                 f_EW + f_NS = number of remaining tricks
+                 or f_NS > number of total tricks - beta
+                 or f_EW > number of total tricks - alpha
+             f_NS^ \       |   EW + f_EW + alpha = N
+                 | x \     |
+                 |----\-----------  NS + f_NS + beta = N
+                 |     \   |
+                 |      \  |
+                 |       \ |
+                 |        \|
+                 |         \
+                 |         |\
+                 |         |x\  f_NS + f_EW  = M
+                 +-------------------------> f_EW
+        Can be anywhere in the upper left, lower right triangles (with x in them), or on the f_NS + f_EW = m line.
+        Here, N is total number of tricks, M is remaining number of tricks.
+        """
+        print(self.trump, alpha, beta, NS, EW)
+        # alpha is used for pruning, f_NS is used for memoization
+        pos_in_trick = play_number % 4
+        trick_number = play_number // 4
+        f_NS = 0
+        f_NS2 = 0
+        f_EW = 0
+        f_EW2 = 0
+        m = 52 - play_number
+        # When it is the last trick, find the result of the trick and return the result
+        if trick_number == 12:
+            assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
+            winning_pos = self.decide_winner(
+                [next(iter(state[0])), next(iter(state[1])), next(iter(state[2])), next(iter(state[3]))])
+            if winning_pos % 2 == 0:
+                NS += 1
+                return NS, 1, 0
+            else:
+                return NS, 0, 1
+        else:  # When it is not the last trick
+            # get current player, TODO: maybe add to parameters
+            cur_player = self.card_holder_dict[next(iter(state[0]))]
+            # When leading the trick, the player can play any card
+            if m % 4 == 0:
+                # memoization process
+                # use stored values if possible
+                # TODO: update this memoization process, with beta being changed
+                if m <= LINK_LEVEL * 4 + 4:
+                    # create link
+                    links = SuitLevelLinks(self.suit_level_links, self.trump, cur_player)
+                    # if len(links) != m:
+                    #     pass
+                    assert len(links) == m, str(m) + str(links) + str(len(links))
+                    # if the link has been stored before
+                    if links in self.link_lookup_table:
+                        # get stored value
+                        stored_f_NS, stored_f_EW = self.link_lookup_table[links]
+                        # if the stored value is complete, return it
+                        if stored_f_EW + stored_f_NS == m // 4:
+                            assert NS + stored_f_NS == EW - stored_f_EW, "NS EW should be the same if" \
+                                                                           " remaining is determined" + str(
+                                stored_f_NS) + str(stored_f_EW)
+                            # print("max, read from lookup table, completely searched", state, stored_f_NS, stored_f_EW)
+                            return NS + stored_f_NS, stored_f_NS, stored_f_EW
+                        # if the stored value is not complete, update alpha beta, return if alpha + beta >= 13
+                        f_NS = stored_f_NS
+                        f_EW = stored_f_EW
+                        if f_NS + NS > alpha:
+                            alpha = f_NS + NS
+                        if f_EW + EW > beta:
+                            beta = f_EW + EW
+                        if alpha + beta >= 13:
+                            # print("max, read from lookup table, partially searched", state, stored_f_NS, stored_f_EW)
+                            return alpha, f_NS, f_EW
+                        f_NS2 = f_NS
+                        f_EW2 = f_EW
+                playable_cards = state[0].copy()
+            # When not leading the trick, decide the possible playing cards
+            else:
+                first_card = self.play[(trick_number * 4)]
+                playable_cards = set(filter(lambda element: element // 13 == first_card // 13, state[0]))
+                if not playable_cards:
+                    playable_cards = state[0].copy()
+                # print(first_card, playable_cards, state[0])
+            # print(m, state[0], playable_cards, remaining_cards[math.ceil(m/4) - 1])
+            # Iterate through all playable cards
+            for current_card in playable_cards:
+                # Play the smallest card in a series of consecutive cards.
+                # E.g. If AKQT9 are in the hand, play QT9 and skip over AK.
+                # If J is played before, play only T9 and skip over AKQ
+                # TODO: refine this
+                smallest_in_consecutive = True
+                # print(current_card, current_card // 13)
+                temp_link = self.suit_level_links[current_card // 13]
+                for i in range(current_card % 13 - 1, -1, -1):
+                    if temp_link[i] != -1:
+                        if temp_link[i] == cur_player:
+                            smallest_in_consecutive = False
+                        break
+                if smallest_in_consecutive:
+                    # play the card
+                    self.play[52 - m] = current_card
+                    state[0].remove(current_card)                    # remove from state
+                    # print("max-in", state, current_card)
+                    # assert suit_level_links[current_card//13][current_card % 13] == cur_player
+
+                    # if not the end of a trick, recurse
+                    if m % 4 != 1:   # not end of trick
+                        s = state[1:] + state[:1]
+                        alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, beta, alpha, EW, NS, play_number + 1)
+                        alpha = max(alpha, alpha_new)
+                        # f_NS and f_EW both change in favour of the current player
+                        f_NS = max(f_NS, f_NS_new)
+                        f_EW = min(f_EW, f_EW_new)
+                        # print("max-out", state, current_card)
+                    # if end of a trick, determine trick winner and recurse
+                    else:
+                        winner = self.decide_winner(self.play[trick_number * 4:trick_number * 4 + 4])
+                        # If the winner is on the current team
+                        if winner % 2 == 1:
+                            NS += 1
+                            if NS > alpha:
+                                alpha = NS
+                                if alpha + beta >= 13:
+                                    state[0].add(current_card)
+                                    return alpha, max(f_NS, 1), f_EW
+                            if winner == 3:
+                                s = state[:]
+                            else:
+                                s = state[2:] + state[:2]
+                            for l in self.play[trick_number * 4:trick_number * 4 + 4]:
+                                self.suit_level_links[l // 13][l % 13] = -1  # remove from suit_level_links
+                            alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, beta, alpha, EW, NS, play_number + 1)
+                            alpha = max(alpha, alpha_new)
+                            f_NS = max(f_NS, f_NS_new + 1)
+                            f_EW = min(f_EW, f_EW_new)
+                            temp_player = (cur_player + 1) % 4
+                            for l in self.play[trick_number * 4:trick_number * 4 + 4]:
+                                self.suit_level_links[l // 13][l % 13] = temp_player  # return back to suit_level_links
+                                temp_player = (temp_player + 1) % 4
+                            # print("alpha = max(max), ", alpha, s, trump, alpha, beta, NS, EW)
+                            # print("max-out", state, current_card)
+                            NS -= 1
+                        # when the winner is on the current team
+                        else:
+                            EW += 1
+                            if EW > beta:
+                                beta = EW
+                                if alpha + beta >= 13:
+                                    state[0].add(current_card)
+                                    return alpha, f_NS, min(f_EW, 1)
+                            s = state[winner + 1:] + state[:winner + 1]
+                            # print("alpha is about to = max(min)", alpha, s, trump, alpha, beta, NS, EW)
+                            for l in self.play[trick_number * 4:trick_number * 4 + 4]:
+                                self.suit_level_links[l // 13][l % 13] = -1  # remove from suit_level_links
+                            alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, beta, alpha, EW, NS, play_number + 1)
+                            alpha = max(alpha, alpha_new)
+                            f_NS = max(f_NS, f_NS_new + 1)
+                            f_EW = min(f_EW, f_EW_new)
+                            temp_player = (cur_player + 1) % 4
+                            for l in self.play[trick_number * 4:trick_number * 4 + 4]:
+                                self.suit_level_links[l // 13][l % 13] = temp_player  # return back to suit_level_links
+                                temp_player = (temp_player + 1) % 4
+                            # print("alpha = max(min), ", alpha, s, trump, alpha, beta, NS, EW)
+                            # print("max-out", state, current_card)
+                            EW -= 1
+                    if trick_number * 4 <= TEST_L:
+                        finish = time.time()
+                        print(finish - start)
+                        pickle_dump_link_lookup_table()
+                        quit()
+                    state[0].add(current_card)                                      # give back to state
+                    # if the other team had equal or better play, return
+                    if alpha + beta >= 13:
+                        # print(state, trump, alpha, beta, NS, EW, "=", beta, "2")
+                        # memoization
+                        if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
+                            if f_NS > f_NS2 or f_EW > f_EW2:
+                                update_link_lookup_table(links, f_NS, f_EW)
+                        return alpha, f_NS, f_EW
+        # memoization
+        if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
+            if f_NS > f_NS2 or f_EW > f_EW2:
+                update_link_lookup_table(links, f_NS, f_EW)
+        return alpha, f_NS, f_EW
+
+
 def pickle_dump_link_lookup_table():
     if DETAILED_LINK_OBJ:
         f = open("detailed_link_lookup_table.pkl", 'wb+')
@@ -153,338 +395,6 @@ def update_link_lookup_table(suit_level_links, NS_min, EW_min):
         link_lookup_table[suit_level_links] = (NS_min1, EW_min1)
     else:
         link_lookup_table[suit_level_links] = (NS_min, EW_min)
-
-
-def MAX_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):  # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
-    # print(state, trump, alpha, beta, NS, EW, "max")
-    # alpha is used for pruning, f_alpha is used for memoization
-    global play
-    global card_holder_dict
-    global suit_level_links
-    global link_lookup_table
-    global start
-    f_alpha = NS
-    f_alpha2 = NS
-    f_beta = 0
-    f_beta2 = 0
-    m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
-    l = ((52 - m) // 4) * 4
-    if m == 4:
-        assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
-        if TRICK_LOOKUP_TABLE:
-            winning_pos = int(trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))])
-        else:
-            winning_pos = decide_winner([next(iter(state[0])), next(iter(state[1])), next(iter(state[2])), next(iter(state[3]))], trump - 1)
-        if winning_pos % 2 == 0:
-            NS += 1
-        return NS, NS, NS
-    else:
-        cur_player = card_holder_dict[next(iter(state[0]))]
-        if m % 4 == 0:
-            if m <= LINK_LEVEL * 4 + 4:
-                links = SuitLevelLinks(suit_level_links, trump, cur_player)
-                # if len(links) != m:
-                #     pass
-                assert len(links) == m, str(m) + str(links) + str(len(links))
-                if links in link_lookup_table:
-                    remaining_NS, remaining_EW = link_lookup_table[links]
-                    if remaining_EW + remaining_NS == m // 4:
-                        assert NS + remaining_NS == EW - remaining_EW, "NS EW should be the same if" \
-                            " remaining is determined" + str(remaining_NS) + str(remaining_EW)
-                        # print("max, read from lookup table, completely searched", state, remaining_NS, remaining_EW)
-                        return NS + remaining_NS, NS + remaining_NS, NS + remaining_NS
-
-                    f_alpha = remaining_NS + NS
-                    f_alpha2 = f_alpha
-                    if f_alpha > alpha:
-                        alpha = f_alpha
-                        if alpha >= beta:      # remaining_NS + NS = alpha
-                            # print("max, read from lookup table, partially searched", state, remaining_NS, remaining_EW)
-                            return alpha, f_alpha, f_beta
-                    # EW -= m // 4 - remaining_tricks
-                    f_beta2 = EW - remaining_EW
-                    if f_beta2 < beta:
-                        beta = f_beta2
-                        if beta <= alpha:  # EW - remaining_EW = beta
-                            # print("max, read from lookup table, partially searched", state, remaining_NS, remaining_EW)
-                            return alpha, f_alpha, f_beta2
-            playable_cards = state[0].copy()
-            # remaining_cards[math.ceil(m / 4) - 1] = state[0] | state[1] | state[2] | state[3]
-            # # remaining_cards[math.ceil(m / 4) - 1].sort()  ########################################
-        else:
-            first_card = play[l]
-            playable_cards = set(filter(lambda element: element // 13 == first_card // 13, state[0]))
-            if not playable_cards:
-                playable_cards = state[0].copy()
-            # print(first_card, playable_cards, state[0])
-        # print(m, state[0], playable_cards, remaining_cards[math.ceil(m/4) - 1])
-        for k in playable_cards:
-            bool_consecutive_card = True
-            temp_link = suit_level_links[k//13]
-            for i in range(k % 13 - 1, -1, -1):
-                if temp_link[i] != -1:
-                    if temp_link[i] == cur_player:
-                        bool_consecutive_card = False
-                    break
-            # if l:
-            #     if remaining_cards[math.ceil(m/4) - 1].index(k):
-            #         bool_consecutive_card = k // 13 != remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1] // 13 or remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1] not in playable_cards
-            #         # print(k, remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1])
-            #     else:
-            #         bool_consecutive_card = True
-            # else:
-            #     bool_consecutive_card = not k % 13 or k - 1 not in playable_cards
-            # # print(k, bool_consecutive_card)
-            #
-            if bool_consecutive_card:
-                play[52 - m] = k
-                state[0].remove(k)                    # remove from state
-                # print("max-in", state, k)
-                # assert suit_level_links[k//13][k % 13] == cur_player
-                if m % 4 != 1:   # not end of trick
-                    s = state[1:] + state[:1]
-                    alpha_new, f_alpha_new, f_beta_new = MIN_VALUE(s, trump, alpha, beta, NS, EW)
-                    alpha = max(alpha, alpha_new)
-                    f_alpha = max(f_alpha, f_alpha_new)
-                    f_beta = max(f_beta, f_beta_new)
-                    # print("max-out", state, k)
-                else:     # end of trick
-                    if TRICK_LOOKUP_TABLE:
-                        winner = int(trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]])
-                    else:
-                        winner = decide_winner(play[l:l+4], trump - 1)
-                    if winner % 2:
-                        NS += 1
-                        if NS > f_alpha:
-                            f_alpha = NS
-                            if NS > alpha:
-                                alpha = NS
-                                if alpha >= beta:
-                                    state[0].add(k)
-                                    return alpha, f_alpha, f_beta
-                        if winner == 3:
-                            s = state[:]
-                        else:
-                            s = state[2:] + state[:2]
-                        for k in play[l:l+4]:
-                            suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
-                        alpha_new, f_alpha_new, f_beta_new = MAX_VALUE(s, trump, alpha, beta, NS, EW)
-                        alpha = max(alpha, alpha_new)
-                        f_alpha = max(f_alpha, f_alpha_new)
-                        f_beta = max(f_beta, f_beta_new)
-                        temp_player = (cur_player + 1) % 4
-                        for k in play[l:l+4]:
-                            suit_level_links[k // 13][k % 13] = temp_player  # return back to suit_level_links
-                            temp_player = (temp_player + 1) % 4
-                        # print("alpha = max(max), ", alpha, s, trump, alpha, beta, NS, EW)
-                        # print("max-out", state, k)
-                        NS -= 1
-                    else:
-                        EW -= 1
-
-                        if EW < beta:
-                            beta = EW
-                            if alpha >= beta:
-                                state[0].add(k)
-                                return alpha, f_alpha, f_beta
-                        s = state[winner + 1:] + state[:winner + 1]
-                        # print("alpha is about to = max(min)", alpha, s, trump, alpha, beta, NS, EW)
-                        for k in play[l:l+4]:
-                            suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
-                        alpha_new, f_alpha_new = MIN_VALUE(s, trump, alpha, beta, NS, EW)
-                        alpha = max(alpha, alpha_new)
-                        f_alpha = max(f_alpha, f_alpha_new)
-                        temp_player = (cur_player + 1) % 4
-                        for k in play[l:l+4]:
-                            suit_level_links[k // 13][k % 13] = temp_player  # return back to suit_level_links
-                            temp_player = (temp_player + 1) % 4
-                        # print("alpha = max(min), ", alpha, s, trump, alpha, beta, NS, EW)
-                        # print("max-out", state, k)
-                        EW += 1
-                if l <= TEST_L:
-                    finish = time.time()
-                    print(finish - start)
-                    pickle_dump_link_lookup_table()
-                    quit()
-                state[0].add(k)                                      # give back to state
-                if alpha >= beta:
-                    # print(state, trump, alpha, beta, NS, EW, "=", beta, "2")
-                    if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-                        if f_alpha > f_alpha2 or beta < beta2:
-                            update_link_lookup_table(links, f_alpha - NS if f_alpha > f_alpha2 else 0
-                                                     , EW - beta if beta < beta2 else 0)
-                    return alpha, f_alpha, f_beta
-    if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-        if f_alpha > f_alpha2 or beta < beta2:
-            update_link_lookup_table(links, f_alpha - NS if f_alpha > f_alpha2 else 0
-                                     , EW - beta if beta < beta2 else 0)
-    return alpha, f_alpha, f_beta
-
-
-def MIN_VALUE(state, trump, alpha=0, beta=13, NS=0, EW=13):
-    # print(state, trump, alpha, beta, NS, EW, "min")
-    global play
-    global card_holder_dict
-    global suit_level_links
-    global link_lookup_table
-    global start
-    beta2 = beta
-    alpha2 = alpha
-    m = len(state[0]) + len(state[1]) + len(state[2]) + len(state[3])
-    l = ((52 - m) // 4) * 4
-    f_beta = EW
-    f_beta2 = EW
-    f_alpha = NS
-    f_alpha2 = NS
-    if m == 4:
-        assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
-        if TRICK_LOOKUP_TABLE:
-            winning_pos = int(trick_lookup_table[trump-1][next(iter(state[0]))][next(iter(state[1]))][next(iter(state[2]))][next(iter(state[3]))])
-        else:
-            winning_pos = decide_winner(
-                [next(iter(state[0])), next(iter(state[1])), next(iter(state[2])), next(iter(state[3]))], trump - 1)
-        if winning_pos % 2 == 1:
-            NS += 1
-        return NS, NS
-    else:
-        cur_player = card_holder_dict[next(iter(state[0]))]
-        if m % 4 == 0:
-            if m <= LINK_LEVEL * 4 + 4:
-                links = SuitLevelLinks(suit_level_links, trump, cur_player)
-                if links in link_lookup_table:
-                    remaining_EW, remaining_NS = link_lookup_table[links]
-                    if remaining_EW + remaining_NS == m // 4:
-                        assert NS + remaining_NS == EW - remaining_EW, "NS EW should be the same if" \
-                                                                                  " remaining is determined"
-                        # print("min, read from lookup table, completely searched", state, remaining_EW, remaining_NS)
-                        return NS + remaining_NS, NS + remaining_NS
-                    if remaining_NS + NS > alpha:
-                        alpha = remaining_NS + NS
-                        if alpha >= beta:  # remaining_NS + NS = alpha
-                            # print("min, read from lookup table, partially searched", state, remaining_EW, remaining_NS)
-                            return beta, f_beta
-                    # EW -= m // 4 - remaining_tricks
-                    f_beta = EW - remaining_EW
-                    f_beta2 = f_beta
-                    if f_beta < beta:
-                        beta = f_beta
-                        beta2 = beta
-                        if beta <= alpha:  # EW - m % 4 + remaining_EW = beta
-                            # print("min, read from lookup table, partially searched", state, remaining_EW, remaining_NS)
-                            return beta, f_beta
-            playable_cards = state[0].copy()
-        else:
-            first_card = play[l]
-            playable_cards = set(filter(lambda element: element//13 == first_card//13, state[0]))
-            if not playable_cards:
-                playable_cards = state[0].copy()
-        for k in playable_cards:
-            # if l:
-            #     if remaining_cards[math.ceil(m/4) - 1].index(k):
-            #         bool_consecutive_card = k // 13 != remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1] // 13 or remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1] not in playable_cards
-            #         # print(k, remaining_cards[math.ceil(m/4) - 1][remaining_cards[math.ceil(m/4) - 1].index(k) - 1])
-            #     else:
-            #         bool_consecutive_card = True
-            # else:
-            #     bool_consecutive_card = k - 1 not in playable_cards or not k % 13
-            # # print(k, bool_consecutive_card)
-            bool_consecutive_card = True
-            temp_link = suit_level_links[k // 13]
-            for i in range(k % 13 - 1, -1, -1):
-                if temp_link[i] != -1:
-                    if temp_link[i] == cur_player:
-                        bool_consecutive_card = False
-                    break
-            if bool_consecutive_card:
-                play[52 - m] = k
-                state[0].remove(k)
-                # print("min-out", state, k)
-
-                if m % 4 != 1:
-                    s = state[1:] + state[:1]
-                    beta_new, f_beta_new = MAX_VALUE(s, trump, alpha, beta, NS, EW)
-                    beta = min(beta, beta_new)
-                    f_beta = min(f_beta, f_beta_new)
-                    # print("min-out", state, k)
-                else:
-                    if TRICK_LOOKUP_TABLE:
-                        winner = int(trick_lookup_table[trump-1][play[l]][play[l+1]][play[l+2]][play[l+3]])
-                    else:
-                        winner = decide_winner(play[l:l + 4], trump - 1)
-                    if winner % 2:
-                        EW -= 1
-                        if EW < f_beta:
-                            f_beta = EW
-                            if EW < beta:
-                                beta = EW
-                                if alpha >= beta:
-                                    state[0].add(k)
-                                    return beta, f_beta
-                        s = state[winner + 1:] + state[:winner + 1]
-                        for k in play[l:l+4]:
-                            suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
-                        beta_new, f_beta_new = MAX_VALUE(s, trump, alpha, beta, NS, EW)
-                        beta = min(beta, beta_new)
-                        f_beta = min(f_beta, f_beta_new)
-                        temp_player = (cur_player + 1) % 4
-                        for k in play[l:l+4]:
-                            suit_level_links[k // 13][k % 13] = temp_player  # return back to suit_level_links
-                            temp_player = (temp_player + 1) % 4
-                        # print("min-out", state, k)
-                        EW += 1
-                    else:
-                        NS += 1
-                        if NS > alpha:
-                            alpha = NS
-                            if alpha >= beta:
-                                state[0].add(k)
-                                return beta, f_beta
-                        if winner != 3:
-                            s = state[winner + 1:] + state[:winner + 1]
-                        else:
-                            s = state[:]
-                        for k in play[l:l+4]:
-                            suit_level_links[k // 13][k % 13] = -1  # remove from suit_level_links
-                        beta_new, f_beta_new = MIN_VALUE(s, trump, alpha, beta, NS, EW)
-                        beta = min(beta, beta_new)
-                        f_beta = min(f_beta, f_beta_new)
-                        temp_player = (cur_player + 1) % 4
-                        for k in play[l:l + 4]:
-                            suit_level_links[k // 13][k % 13] = temp_player  # return back to suit_level_links
-                            temp_player = (temp_player + 1) % 4
-                        # print("min-in", state, k)
-                        NS -= 1
-                if l <= TEST_L:
-                    finish = time.time()
-                    print(finish - start)
-                    pickle_dump_link_lookup_table()
-                    quit()
-                state[0].add(k)
-
-                if alpha >= beta:
-                    # print(state, trump, alpha, beta, NS, EW, "=", alpha, "5")
-                    if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-                        if alpha > alpha2 or f_beta < f_beta2:
-                            update_link_lookup_table(links, EW - f_beta if f_beta < f_beta2 else 0,
-                                                     alpha - NS if alpha > alpha2 else 0)
-                    return beta, f_beta
-    if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-        if alpha > alpha2 or f_beta < f_beta2:
-            update_link_lookup_table(links, EW - beta if f_beta < f_beta2 else 0,
-                                     alpha - NS if alpha > alpha2 else 0)
-    # print(state, trump, alpha, beta, NS, EW, "=", beta, "6")
-    return beta, f_beta
-"""
-Above is the minimax algorithm, showing that on NS perspective, North and South (dummy controlled by North) aims to
-maximize NS tricks, where East and West aims to minimize EW tricks. Both MAX_VALUE and MIN_VALUE returns the number of
-NS tricks. MAX_VALUE returns at this state, given EW's best effort to minimize NS tricks, how many tricks can NS get.
-MIN_VALUE returns at this state, at most how many tricks can NS get with all possible plays (potentially not with any
-effort towards the bridge game's goals).
-Alpha-beta algorithm is an algorithm that skips unnecessary nodes in a bridge game that aims to optimize the algorithm.
-The effectiveness of the optimization from the alpha-beta algorithm depends on how the tree is approached with the
-algorithm, which in turn depends on the actual distribution of hands. Nevertheless, alpha-beta will skip nodes and
-should be faster than minimax algorithm itself.
-"""
 
 
 def get_suit(card):  # suit function
@@ -718,63 +628,56 @@ def main():
         else:
             link_lookup_table = dict()
 
-    card_holder = np.empty(52, dtype=int)
-    card_holder.fill(-1)
-    card_rank = np.arange(52).tolist()
-    card_suit = np.arange(4).tolist()
-    for j in Nindex:
-        card_holder[j] = 0
-    for j in Eindex:
-        card_holder[j] = 1
-    for j in Sindex:
-        card_holder[j] = 2
-    for j in Windex:
-        card_holder[j] = 3
-    suit_level_links = np.resize(card_holder, (4, 13)).tolist()
-    suit_level_links = dict(zip(card_suit, suit_level_links))
-    card_holder_dict = dict(zip(card_rank, card_holder.tolist()))
-    # card_holder_dict is a dictionary that sends every card to the player that holds it in the beginning
-    play = [-1] * 52
-    # play stores card codes of cards that have been played in order, and -1 represents haven't reached that turn yet
-    play_len = len(Windex)
     # Case 1: Trump = NT
     # print(type(Windex), type(Sindex), type(Eindex), type(Nindex))
     current_state = [Nindex, Eindex, Sindex, Windex]
+    solveNT = DoubleDummySolver(suit_level_links, link_lookup_table, 5, current_state)
     start = time.time()
-    print(MAX_VALUE(state=current_state, trump=5, alpha=0, beta=play_len, NS=0, EW= play_len), "NT")
+    a, b, c = solveNT.MAX_VALUE(current_state)
     end = time.time()
+    print(a, "NT")
     print(end-start)
     # Case 2：Trump = C
+    solveC = DoubleDummySolver(suit_level_links, link_lookup_table, 1, current_state)
     start = time.time()
-    print(MAX_VALUE(state=current_state, trump=1, alpha=0, beta=play_len, NS=0, EW= play_len), "C")
+    a, b, c = solveC.MAX_VALUE(current_state)
     end = time.time()
-    print(end-start)
+    print(a, "C")
+    print(end - start)
     # Case 3: Trump = D
+    solveD = DoubleDummySolver(suit_level_links, link_lookup_table, 2, current_state)
     start = time.time()
-    print(MAX_VALUE(state=current_state, trump=2, alpha=0, beta=play_len, NS=0, EW=play_len), "D")
+    a, b, c = solveD.MAX_VALUE(current_state)
     end = time.time()
-    print(end-start)
+    print(a, "D")
+    print(end - start)
     # Case 4: Trump = H
+    solveH = DoubleDummySolver(suit_level_links, link_lookup_table, 3, current_state)
     start = time.time()
-    print(MAX_VALUE(state=current_state, trump=3, alpha=0, beta=play_len, NS=0, EW= play_len), "H")
+    a, b, c = solveH.MAX_VALUE(current_state)
     end = time.time()
-    print(end-start)
+    print(a, "H")
+    print(end - start)
     # Case 5: Trump = S
+    solveS = DoubleDummySolver(suit_level_links, link_lookup_table, 4, current_state)
     start = time.time()
-    print(MAX_VALUE(state=current_state, trump=4, alpha=0, beta=play_len, NS=0, EW= play_len), "S")
-    print(end-start)
+    a, b, c = solveS.MAX_VALUE(current_state)
+    end = time.time()
+    print(a, "S")
+    print(end - start)
     print()
     pickle_dump_link_lookup_table()
 
 
 if __name__ == '__main__':
-    # main()
+    main()
     # import cProfile
     # cProfile.run('main()',filename="profile.out")
     import pstats
     p = pstats.Stats("profile1.out")
     p.sort_stats("time").print_stats()
     p.print_callers("__hash__")
+
 
 def minMax(play1, card_holder_dict1, state1, length):
     global play
