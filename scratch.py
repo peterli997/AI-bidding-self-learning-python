@@ -11,12 +11,29 @@ from DoubleDummy import SuitLevelLinks, update_link_lookup_table, pickle_dump_li
 
 
 class DoubleDummySolver:
-    play = ...
-    card_holder_dict = ...
-    suit_level_links = ...
-    link_lookup_table = ...
-    start = ...
-    trump = ...
+    def __init__(self, suit_level_links, link_lookup_table, trump, state):
+        # TODO: change type(state) from set to tuple
+        self.play = [-1] * 52
+        self.card_rank = list(range(52))
+        self.card_holder = [-1] * 52
+        self.Nindex = state[0]
+        self.Eindex = state[1]
+        self.Sindex = state[2]
+        self.Windex = state[3]
+        for card in self.Nindex:
+            self.card_holder[card] = 0
+        for card in self.Eindex:
+            self.card_holder[card] = 1
+        for card in self.Sindex:
+            self.card_holder[card] = 2
+        for card in self.Windex:
+            self.card_holder[card] = 3
+        self.card_holder_dict = dict(zip(self.card_rank, self.card_holder))
+        self.suit_level_links = suit_level_links
+        self.link_lookup_table = link_lookup_table
+        self.start = time.time()
+        self.trump = trump
+
     def decide_winner(self, trick):
         winning_card = trick[0]
         winner = 0
