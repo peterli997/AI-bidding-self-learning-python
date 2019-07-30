@@ -302,7 +302,6 @@ class BridgeGame:
             return self.last_penalty == PENALTY_PASS and (self.current_player - self.last_normal_bidder) % 2 == 1
         return BridgeGame.is_greater_bid(new_bid, self.last_normal_bid)  # normal bid
 
-    # TODO: implement this
     def is_valid_play(self, new_play):
         """
         Check if a new bid is valid
@@ -311,8 +310,12 @@ class BridgeGame:
         """
         if new_play not in self.hands[self.current_player]:  # the player should have the card
             return False
-        
-
+        if len(self.play_history) % 4 == 0:
+            return True
+        leading_suit = self.play_history[len(self.play_history) // 4 * 4][0]
+        if new_play[0] == leading_suit:
+            return True
+        return len(set(filter(lambda x: x[0] == leading_suit, self.hands[self.current_player])))
 
     def is_done_bidding(self):
         if self.stage == STAGE_PLAYING:
