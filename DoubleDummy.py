@@ -11,15 +11,17 @@ INPUT_FILE_NAME = "input.txt"  # file name for input
 
 TRICK_LOOKUP_TABLE = False  # if using trick lookup table
 
+N = 13  # number of tricks
 LINK_LEVEL = 11  # number of remaining tricks to be stored - 1
 HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,
             4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,
             4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904]
 DETAILED_LINK_OBJ = False  # if links are stored
+DEBUG = False  # False for normal run, True for debug
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = -1 # -1 for complete run
+TEST_L = -1  # -1 for complete run
 COLLISION_DETECTOR = dict()
 """
 Card code ranges from 0 to 51,
@@ -136,7 +138,7 @@ class SuitLevelLinks:
 class DoubleDummySolver:
     def __init__(self, suit_level_links, link_lookup_table, trump, state):
         # TODO: change type(state) from set to tuple
-        self.play = [-1] * 52
+        self.play = [-1] * (4 * N)
         self.card_rank = list(range(52))
         self.card_holder = [-1] * 52
         self.Nindex = state[0]
@@ -180,9 +182,9 @@ class DoubleDummySolver:
         :param state: the state of the current board, tuple of four lists of hands.
         :param trump: the trump of the current round.
         :param alpha: alpha in alpha-beta pruning, the maximum lower bound of the true value,
-                    the minimum number of cards that the current team (team with the current player) is able to get.
+                    the minimum number of tricks that the current team (team with the current player) is able to get.
         :param beta: 13 minus beta in alpha-beta pruning, 13 minus the minimum upper bound of the true value,
-                    the minimum number of cards that the other team is able to get.
+                    the minimum number of tricks that the other team is able to get.
         :param NS: the current number of tricks that the current team has taken.
         :param EW: the current number of tricks that the other team has taken.
         :param play_number: the number of the current play.
@@ -208,7 +210,9 @@ class DoubleDummySolver:
         Can be anywhere in the upper left, lower right triangles (with x in them), or on the f_NS + f_EW = m line.
         Here, N is total number of tricks, M is remaining number of tricks.
         """
-        print(self.trump, alpha, beta, NS, EW)
+        m = 4 * N - play_number
+        if DEBUG:
+            print(self.trump, alpha, beta, NS, EW, "start", m)
         # alpha is used for pruning, f_NS is used for memoization
         pos_in_trick = play_number % 4
         trick_number = play_number // 4
@@ -216,16 +220,20 @@ class DoubleDummySolver:
         f_NS2 = 0
         f_EW = 0
         f_EW2 = 0
-        m = 52 - play_number
         # When it is the last trick, find the result of the trick and return the result
-        if trick_number == 12:
+        if trick_number == N - 1:
             assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
             winning_pos = self.decide_winner(
                 [next(iter(state[0])), next(iter(state[1])), next(iter(state[2])), next(iter(state[3]))])
+            if DEBUG:
+                print(state[0], state[1], state[2], state[3], winning_pos, "last trick")
             if winning_pos % 2 == 0:
-                NS += 1
-                return NS, 1, 0
+                if DEBUG:
+                    print(alpha, beta, NS + 1, EW, m, "return in 1")
+                return NS + 1, 1, 0
             else:
+                if DEBUG:
+                    print(alpha, beta, NS, EW + 1, m, "return in 2")
                 return NS, 0, 1
         else:  # When it is not the last trick
             # get current player, TODO: maybe add to parameters
@@ -243,14 +251,17 @@ class DoubleDummySolver:
                     assert len(links) == m, str(m) + str(links) + str(len(links))
                     # if the link has been stored before
                     if links in self.link_lookup_table:
+                        # TODO: seems incorrect
                         # get stored value
                         stored_f_NS, stored_f_EW = self.link_lookup_table[links]
                         # if the stored value is complete, return it
                         if stored_f_EW + stored_f_NS == m // 4:
-                            assert NS + stored_f_NS == EW - stored_f_EW, "NS EW should be the same if" \
-                                                                           " remaining is determined" + str(
-                                stored_f_NS) + str(stored_f_EW)
+                            # assert NS + stored_f_NS == EW - stored_f_EW, "NS EW should be the same if" \
+                            #                                                " remaining is determined" + str(
+                            #     stored_f_NS) + str(stored_f_EW)
                             # print("max, read from lookup table, completely searched", state, stored_f_NS, stored_f_EW)
+                            if DEBUG:
+                                print(m, "return in 3")
                             return NS + stored_f_NS, stored_f_NS, stored_f_EW
                         # if the stored value is not complete, update alpha beta, return if alpha + beta >= 13
                         f_NS = stored_f_NS
@@ -261,6 +272,8 @@ class DoubleDummySolver:
                             beta = f_EW + EW
                         if alpha + beta >= 13:
                             # print("max, read from lookup table, partially searched", state, stored_f_NS, stored_f_EW)
+                            if DEBUG:
+                                print(alpha, beta, m, "return in 4")
                             return alpha, f_NS, f_EW
                         f_NS2 = f_NS
                         f_EW2 = f_EW
@@ -274,6 +287,8 @@ class DoubleDummySolver:
                 # print(first_card, playable_cards, state[0])
             # print(m, state[0], playable_cards, remaining_cards[math.ceil(m/4) - 1])
             # Iterate through all playable cards
+            if DEBUG:
+                print(state[0], playable_cards, "playable_cards")
             for current_card in playable_cards:
                 # Play the smallest card in a series of consecutive cards.
                 # E.g. If AKQT9 are in the hand, play QT9 and skip over AK.
@@ -282,14 +297,19 @@ class DoubleDummySolver:
                 smallest_in_consecutive = True
                 # print(current_card, current_card // 13)
                 temp_link = self.suit_level_links[current_card // 13]
+                # print(self.suit_level_links, "\n", temp_link)
                 for i in range(current_card % 13 - 1, -1, -1):
                     if temp_link[i] != -1:
                         if temp_link[i] == cur_player:
                             smallest_in_consecutive = False
                         break
+                if DEBUG:
+                    print(current_card, smallest_in_consecutive, "consecutive", m)
                 if smallest_in_consecutive:
                     # play the card
-                    self.play[52 - m] = current_card
+                    if DEBUG:
+                        print(current_card, "play", m)
+                    self.play[4 * N - m] = current_card
                     state[0].remove(current_card)                    # remove from state
                     # print("max-in", state, current_card)
                     # assert suit_level_links[current_card//13][current_card % 13] == cur_player
@@ -297,8 +317,11 @@ class DoubleDummySolver:
                     # if not the end of a trick, recurse
                     if m % 4 != 1:   # not end of trick
                         s = state[1:] + state[:1]
+                        if DEBUG:
+                            print(alpha, beta, NS, EW, "next node 1")
                         alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, beta, alpha, EW, NS, play_number + 1)
                         alpha = max(alpha, alpha_new)
+                        # beta = min(beta, beta_new)
                         # f_NS and f_EW both change in favour of the current player
                         f_NS = max(f_NS, f_NS_new)
                         f_EW = min(f_EW, f_EW_new)
@@ -306,13 +329,17 @@ class DoubleDummySolver:
                     # if end of a trick, determine trick winner and recurse
                     else:
                         winner = self.decide_winner(self.play[trick_number * 4:trick_number * 4 + 4])
+                        if DEBUG:
+                            print(self.play[trick_number * 4:trick_number * 4 + 4], winner, "end of trick")
                         # If the winner is on the current team
                         if winner % 2 == 1:
                             NS += 1
                             if NS > alpha:
                                 alpha = NS
-                                if alpha + beta >= 13:
+                                if alpha + beta >= N:
                                     state[0].add(current_card)
+                                    if DEBUG:
+                                        print(alpha, beta, m, "return in 5")
                                     return alpha, max(f_NS, 1), f_EW
                             if winner == 3:
                                 s = state[:]
@@ -320,8 +347,11 @@ class DoubleDummySolver:
                                 s = state[2:] + state[:2]
                             for l in self.play[trick_number * 4:trick_number * 4 + 4]:
                                 self.suit_level_links[l // 13][l % 13] = -1  # remove from suit_level_links
-                            alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, beta, alpha, EW, NS, play_number + 1)
+                            if DEBUG:
+                                print(alpha, beta, NS, EW, "next node 2")
+                            alpha_new, f_NS_new, f_EW_new = self.MAX_VALUE(s, alpha, beta, NS, EW, play_number + 1)
                             alpha = max(alpha, alpha_new)
+                            # beta = min(beta, beta_new)
                             f_NS = max(f_NS, f_NS_new + 1)
                             f_EW = min(f_EW, f_EW_new)
                             temp_player = (cur_player + 1) % 4
@@ -336,17 +366,22 @@ class DoubleDummySolver:
                             EW += 1
                             if EW > beta:
                                 beta = EW
-                                if alpha + beta >= 13:
+                                if alpha + beta >= N:
                                     state[0].add(current_card)
+                                    if DEBUG:
+                                        print(alpha, beta, m, "return in 6")
                                     return alpha, f_NS, min(f_EW, 1)
                             s = state[winner + 1:] + state[:winner + 1]
                             # print("alpha is about to = max(min)", alpha, s, trump, alpha, beta, NS, EW)
                             for l in self.play[trick_number * 4:trick_number * 4 + 4]:
                                 self.suit_level_links[l // 13][l % 13] = -1  # remove from suit_level_links
+                            if DEBUG:
+                                print(alpha, beta, NS, EW, "next node 3")
                             alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, beta, alpha, EW, NS, play_number + 1)
                             alpha = max(alpha, alpha_new)
-                            f_NS = max(f_NS, f_NS_new + 1)
-                            f_EW = min(f_EW, f_EW_new)
+                            # beta = min(beta, beta_new)
+                            f_NS = max(f_NS, f_NS_new)
+                            f_EW = min(f_EW, f_EW_new + 1)
                             temp_player = (cur_player + 1) % 4
                             for l in self.play[trick_number * 4:trick_number * 4 + 4]:
                                 self.suit_level_links[l // 13][l % 13] = temp_player  # return back to suit_level_links
@@ -361,17 +396,21 @@ class DoubleDummySolver:
                         quit()
                     state[0].add(current_card)                                      # give back to state
                     # if the other team had equal or better play, return
-                    if alpha + beta >= 13:
+                    if alpha + beta >= N:
                         # print(state, trump, alpha, beta, NS, EW, "=", beta, "2")
                         # memoization
                         if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
                             if f_NS > f_NS2 or f_EW > f_EW2:
                                 update_link_lookup_table(links, f_NS, f_EW)
+                        if DEBUG:
+                            print(alpha, beta, m, "return in 7")
                         return alpha, f_NS, f_EW
         # memoization
         if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
             if f_NS > f_NS2 or f_EW > f_EW2:
                 update_link_lookup_table(links, f_NS, f_EW)
+        if DEBUG:
+            print(alpha, beta, m, "return in 8")
         return alpha, f_NS, f_EW
 
 
@@ -497,6 +536,7 @@ def string_to_rank(string):
         return 12
     if 2 <= int(string) <= 9:
         return int(string) - 2
+
 
 def input_hands_from_file(filename, number_of_hands):
     """
@@ -637,6 +677,7 @@ def main():
     end = time.time()
     print(a, "NT")
     print(end-start)
+    # quit()
     # Case 2：Trump = C
     solveC = DoubleDummySolver(suit_level_links, link_lookup_table, 1, current_state)
     start = time.time()
@@ -673,10 +714,10 @@ if __name__ == '__main__':
     main()
     # import cProfile
     # cProfile.run('main()',filename="profile.out")
-    import pstats
-    p = pstats.Stats("profile1.out")
-    p.sort_stats("time").print_stats()
-    p.print_callers("__hash__")
+    # import pstats
+    # p = pstats.Stats("profile1.out")
+    # p.sort_stats("time").print_stats()
+    # p.print_callers("__hash__")
 
 
 def minMax(play1, card_holder_dict1, state1, length):
