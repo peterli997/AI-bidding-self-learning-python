@@ -331,7 +331,7 @@ class DoubleDummySolver:
                             # print("alpha = max(max), ", alpha, s, trump, alpha, beta, NS, EW)
                             # print("max-out", state, current_card)
                             NS -= 1
-                        # when the winner is on the current team
+                        # when the winner is on the other team
                         else:
                             EW += 1
                             if EW > beta:
