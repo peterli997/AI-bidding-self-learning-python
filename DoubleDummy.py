@@ -11,7 +11,7 @@ INPUT_FILE_NAME = "input.txt"  # file name for input
 
 TRICK_LOOKUP_TABLE = False  # if using trick lookup table
 
-N = 13  # number of tricks
+N = 2  # number of tricks
 LINK_LEVEL = 11  # number of remaining tricks to be stored - 1
 HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,
             4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,
@@ -21,7 +21,7 @@ DEBUG = False  # False for normal run, True for debug
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = 8  # -1 for complete run
+TEST_L = -1  # -1 for complete run
 COLLISION_DETECTOR = dict()
 """
 Card code ranges from 0 to 51,
@@ -289,6 +289,7 @@ class DoubleDummySolver:
             # Iterate through all playable cards
             if DEBUG:
                 print(state[0], playable_cards, "playable_cards")
+            # beta_prime = set()
             for current_card in playable_cards:
                 # Play the smallest card in a series of consecutive cards.
                 # E.g. If AKQT9 are in the hand, play Q9 and skip over AKT.
@@ -370,7 +371,7 @@ class DoubleDummySolver:
                                     state[0].add(current_card)
                                     if DEBUG:
                                         print(alpha, beta, m, "return in 6")
-                                    return alpha, f_NS, min(f_EW, 1)
+                                    continue
                             s = state[winner + 1:] + state[:winner + 1]
                             # print("alpha is about to = max(min)", alpha, s, trump, alpha, beta, NS, EW)
                             for l in self.play[trick_number * 4:trick_number * 4 + 4]:
