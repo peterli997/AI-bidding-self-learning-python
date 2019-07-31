@@ -11,7 +11,7 @@ INPUT_FILE_NAME = "input.txt"  # file name for input
 
 TRICK_LOOKUP_TABLE = False  # if using trick lookup table
 
-N = 2  # number of tricks
+N = 13  # number of tricks
 LINK_LEVEL = 11  # number of remaining tricks to be stored - 1
 HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,4611686018427387904,4611686018427387904,
             4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,
@@ -21,7 +21,7 @@ DEBUG = False  # False for normal run, True for debug
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = -1  # -1 for complete run
+TEST_L = 12  # -1 for complete run
 COLLISION_DETECTOR = dict()
 """
 Card code ranges from 0 to 51,
@@ -366,7 +366,7 @@ class DoubleDummySolver:
                         else:
                             EW += 1
                             if EW > beta:
-                                beta = EW
+                                # beta = EW
                                 if alpha + beta >= N:
                                     state[0].add(current_card)
                                     if DEBUG:
