@@ -21,7 +21,7 @@ DEBUG = False  # False for normal run, True for debug
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = -1  # -1 for complete run
+TEST_L = 8  # -1 for complete run
 COLLISION_DETECTOR = dict()
 """
 Card code ranges from 0 to 51,
@@ -270,7 +270,7 @@ class DoubleDummySolver:
                             alpha = f_NS + NS
                         if f_EW + EW > beta:
                             beta = f_EW + EW
-                        if alpha + beta >= 13:
+                        if alpha + beta >= N:
                             # print("max, read from lookup table, partially searched", state, stored_f_NS, stored_f_EW)
                             if DEBUG:
                                 print(alpha, beta, m, "return in 4")
@@ -291,8 +291,8 @@ class DoubleDummySolver:
                 print(state[0], playable_cards, "playable_cards")
             for current_card in playable_cards:
                 # Play the smallest card in a series of consecutive cards.
-                # E.g. If AKQT9 are in the hand, play QT9 and skip over AK.
-                # If J is played before, play only T9 and skip over AKQ
+                # E.g. If AKQT9 are in the hand, play Q9 and skip over AKT.
+                # If J is played before, play only 9 and skip over AKQT
                 # TODO: refine this
                 smallest_in_consecutive = True
                 # print(current_card, current_card // 13)
@@ -320,7 +320,7 @@ class DoubleDummySolver:
                         if DEBUG:
                             print(alpha, beta, NS, EW, "next node 1")
                         alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, beta, alpha, EW, NS, play_number + 1)
-                        alpha = max(alpha, alpha_new)
+                        alpha = max(alpha, N - alpha_new)
                         # beta = min(beta, beta_new)
                         # f_NS and f_EW both change in favour of the current player
                         f_NS = max(f_NS, f_NS_new)
@@ -378,7 +378,7 @@ class DoubleDummySolver:
                             if DEBUG:
                                 print(alpha, beta, NS, EW, "next node 3")
                             alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, beta, alpha, EW, NS, play_number + 1)
-                            alpha = max(alpha, alpha_new)
+                            alpha = max(alpha, N - alpha_new)
                             # beta = min(beta, beta_new)
                             f_NS = max(f_NS, f_NS_new)
                             f_EW = min(f_EW, f_EW_new + 1)
