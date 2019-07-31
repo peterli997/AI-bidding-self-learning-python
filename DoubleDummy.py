@@ -21,7 +21,7 @@ DEBUG = False  # False for normal run, True for debug
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = 12  # -1 for complete run
+TEST_L = 16  # -1 for complete run
 COLLISION_DETECTOR = dict()
 """
 Card code ranges from 0 to 51,
@@ -365,20 +365,18 @@ class DoubleDummySolver:
                         # when the winner is on the other team
                         else:
                             EW += 1
-                            if EW > beta:
-                                # beta = EW
-                                if alpha + beta >= N:
-                                    state[0].add(current_card)
-                                    if DEBUG:
-                                        print(alpha, beta, m, "return in 6")
-                                    continue
+                            if alpha + EW >= N:
+                                state[0].add(current_card)
+                                if DEBUG:
+                                    print(alpha, beta, EW, m, "next node 6")
+                                continue
                             s = state[winner + 1:] + state[:winner + 1]
                             # print("alpha is about to = max(min)", alpha, s, trump, alpha, beta, NS, EW)
                             for l in self.play[trick_number * 4:trick_number * 4 + 4]:
                                 self.suit_level_links[l // 13][l % 13] = -1  # remove from suit_level_links
                             if DEBUG:
                                 print(alpha, beta, NS, EW, "next node 3")
-                            alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, beta, alpha, EW, NS, play_number + 1)
+                            alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, max(beta, EW), alpha, EW, NS, play_number + 1)
                             alpha = max(alpha, N - alpha_new)
                             # beta = min(beta, beta_new)
                             f_NS = max(f_NS, f_NS_new)
