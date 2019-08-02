@@ -18,10 +18,12 @@ HASH_MOD = [64,65536,536870912,8589934592,4611686018427387904,461168601842738790
             4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904,4611686018427387904]
 DETAILED_LINK_OBJ = False  # if links are stored
 DEBUG = False  # False for normal run, True for debug
+Use_link = False
+count = 0
 
 Suit = ['S', 'H', 'D', 'C']
 Card = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-TEST_L = 16  # -1 for complete run
+TEST_L = 8  # -1 for complete run
 COLLISION_DETECTOR = dict()
 """
 Card code ranges from 0 to 51,
@@ -174,6 +176,7 @@ class DoubleDummySolver:
     # TODO: remove trump
     # TODO: add N, the total number of tricks
     def MAX_VALUE(self, state, alpha=0, beta=0, NS=0, EW=0, play_number=0):  # trump: C = 1, D = 2, H = 3, S = 4, NT = 5
+        global count
         """
         Main method for the Min-Max algorithm.
         It is equipped with "partial" alpha-beta pruning and memoization.
@@ -219,7 +222,7 @@ class DoubleDummySolver:
         f_NS = 0
         f_NS2 = 0
         f_EW = 0
-        f_EW2 = 0
+        f_EW2 = N
         # When it is the last trick, find the result of the trick and return the result
         if trick_number == N - 1:
             assert len(state[0]) == 1, "everyone should have 1 card for the last trick"
@@ -251,6 +254,11 @@ class DoubleDummySolver:
                     assert len(links) == m, str(m) + str(links) + str(len(links))
                     # if the link has been stored before
                     if links in self.link_lookup_table:
+                        # a = time.time()
+                        # print(self.link_lookup_table[links])
+                        if Use_link:
+                            count += 1
+                            print(count)
                         # TODO: seems incorrect
                         # get stored value
                         stored_f_NS, stored_f_EW = self.link_lookup_table[links]
@@ -277,6 +285,8 @@ class DoubleDummySolver:
                             return alpha, f_NS, f_EW
                         f_NS2 = f_NS
                         f_EW2 = f_EW
+                        # b = time.time()
+                        # print(b - a, "use stored")
                 playable_cards = state[0].copy()
             # When not leading the trick, decide the possible playing cards
             else:
@@ -322,6 +332,7 @@ class DoubleDummySolver:
                             print(alpha, beta, NS, EW, "next node 1")
                         alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, beta, alpha, EW, NS, play_number + 1)
                         alpha = max(alpha, N - alpha_new)
+                        # print(f_NS, f_NS_new, f_EW, f_EW_new, 1)
                         # beta = min(beta, beta_new)
                         # f_NS and f_EW both change in favour of the current player
                         f_NS = max(f_NS, f_NS_new)
@@ -352,6 +363,7 @@ class DoubleDummySolver:
                                 print(alpha, beta, NS, EW, "next node 2")
                             alpha_new, f_NS_new, f_EW_new = self.MAX_VALUE(s, alpha, beta, NS, EW, play_number + 1)
                             alpha = max(alpha, alpha_new)
+                            # print(f_NS, f_NS_new + 1, f_EW, f_EW_new, 2)
                             # beta = min(beta, beta_new)
                             f_NS = max(f_NS, f_NS_new + 1)
                             f_EW = min(f_EW, f_EW_new)
@@ -375,8 +387,9 @@ class DoubleDummySolver:
                             for l in self.play[trick_number * 4:trick_number * 4 + 4]:
                                 self.suit_level_links[l // 13][l % 13] = -1  # remove from suit_level_links
                             if DEBUG:
-                                print(alpha, beta, NS, EW, "next node 3")
+                                print(alpha, beta, NS, EW, m, "next node 3")
                             alpha_new, f_EW_new, f_NS_new = self.MAX_VALUE(s, max(beta, EW), alpha, EW, NS, play_number + 1)
+                            # print(f_NS, f_NS_new, f_EW, f_EW_new + 1, 3)
                             alpha = max(alpha, N - alpha_new)
                             # beta = min(beta, beta_new)
                             f_NS = max(f_NS, f_NS_new)
@@ -399,15 +412,19 @@ class DoubleDummySolver:
                         # print(state, trump, alpha, beta, NS, EW, "=", beta, "2")
                         # memoization
                         if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-                            if f_NS > f_NS2 or f_EW > f_EW2:
+                            # print(f_NS, f_NS2, f_EW, f_EW2, "pre-update", 1)
+                            if f_NS > f_NS2 or f_EW2 > f_EW:
                                 update_link_lookup_table(links, f_NS, f_EW)
+                                # print("update 1")
                         if DEBUG:
                             print(alpha, beta, m, "return in 7")
                         return alpha, f_NS, f_EW
         # memoization
         if m % 4 == 0 and m <= LINK_LEVEL * 4 + 4:
-            if f_NS > f_NS2 or f_EW > f_EW2:
+            # print(f_NS, f_NS2, f_EW, f_EW2, "pre-update", 2)
+            if f_NS > f_NS2 or f_EW2 > f_EW:
                 update_link_lookup_table(links, f_NS, f_EW)
+                # print("update 2")
         if DEBUG:
             print(alpha, beta, m, "return in 8")
         return alpha, f_NS, f_EW
@@ -667,6 +684,9 @@ def main():
         else:
             link_lookup_table = dict()
 
+    # print(link_lookup_table)
+    # links = SuitLevelLinks(suit_level_links, 5, 0)
+    # print(link_lookup_table[links])
     # Case 1: Trump = NT
     # print(type(Windex), type(Sindex), type(Eindex), type(Nindex))
     current_state = [Nindex, Eindex, Sindex, Windex]
