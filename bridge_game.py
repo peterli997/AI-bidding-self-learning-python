@@ -1,4 +1,4 @@
-import numpy as np
+
 # Suit = ['C', 'D', 'H', 'S']
 # Rank = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
 # Position = ['N', 'W', 'S', 'E']
@@ -59,34 +59,48 @@ class BridgeGame:
     """
     Class that simulates a game of bridge
     """
-    vulnerability = VUL_NONE
-    hands = []  # order: NWSE
-    dealer = POS_N
-    current_player = 0
-    # Round stage, can be STAGE_BIDDING, STAGE_PLAYING, STAGE_FINISHED
-    stage = STAGE_BIDDING
-    # Bidding
-    bid_history = []
-    last_normal_bid = BID_PASS  #
-    last_normal_bidder = -1  # index of last normal bid
-    last_penalty = PENALTY_PASS  #
-    # Playing
-    contract = CONTRACT_INVALID  #
-    declarer = POS_N  #
-    play_history = []
-    declarer_tricks = 0  #
-    # Result
-    declarer_score = -1
 
     def __init__(self, hands, vulnerability, starting_pos):
-        # initial board
+        # initialize a round of bridge
         self.vulnerability = vulnerability
-        self.hands = hands             # order: NWSE
+        self.hands = hands  # order: NWSE
+        self.hands_bac = [[c for c in d] for d in hands]
         self.dealer = starting_pos
+        self.current_player = self.dealer
+        # Round stage, can be STAGE_BIDDING, STAGE_PLAYING, STAGE_FINISHED
+        self.stage = STAGE_BIDDING
+        # Bidding
+        self.bid_history = []
+        self.last_normal_bid = BID_PASS  #
+        self.last_normal_bidder = -1  # index of last normal bid
+        self.last_penalty = PENALTY_PASS  #
+        # Playing
+        self.contract = CONTRACT_INVALID  #
+        self.declarer = POS_N  #
+        self.play_history = []
+        self.declarer_tricks = 0  #
+        # Result
+        self.declarer_score = -1
+
+    def reset_round(self):
+        self.hands = self.hands_bac
+        self.stage = STAGE_BIDDING
+        self.bid_history = []
+        self.last_normal_bid = BID_PASS
+        self.last_normal_bidder = -1
+        self.last_penalty = PENALTY_PASS
+        self.contract = CONTRACT_INVALID
+        self.declarer = POS_N
+        self.play_history = []
+        self.declarer_tricks = 0
+        self.declarer_score = -1
+
+
 
     def create_random_board(self):
         self.hands = BridgeGame.random_board()
 
+    # TODO: remove if unecessary
     def get_stage(self):
         return self.stage
 
@@ -111,7 +125,7 @@ class BridgeGame:
             return RETURN_REJECTED_INVALID_BID
         # check bid type
         if new_bid == BID_DOUBLE or new_bid == BID_REDOUBLE:
-            self.last_penalty = new_bid
+            self.last_penalty = new_bid[0]
         elif new_bid != BID_PASS:
             self.last_normal_bid = new_bid
             self.last_normal_bidder = self.current_player
@@ -129,6 +143,7 @@ class BridgeGame:
                 self.stage = STAGE_FINISHED
                 self.declarer_score = 0
                 return RETURN_ACCEPTED_ROUND_FINISHED
+        self.player_inc()
         return RETURN_ACCEPTED
 
     def play(self, new_play):
@@ -150,7 +165,7 @@ class BridgeGame:
         self.hands[self.current_player].remove(new_play)
         self.play_history.append(new_play)
         if len(self.play_history) % 4 == 0:
-            self.current_player = self.previous_trick_winner()
+            self.current_player = self.last_trick_winner()
             if (self.current_player + self.declarer) % 2 == 0:
                 self.declarer_tricks += 1
         else:
@@ -266,13 +281,14 @@ class BridgeGame:
 
     @staticmethod
     def random_board():
+        import numpy as np
         RC = set(range(52))
         Nindex = set(np.random.choice(a=RC, size=13, replace=False))
-        RC = set(RC) - set(Nindex)
+        RC = RC - Nindex
         Sindex = set(np.random.choice(a=RC, size=13, replace=False))
-        RC = set(RC) - set(Sindex)
+        RC = RC - Sindex
         Windex = set(np.random.choice(a=RC, size=13, replace=False))
-        Eindex = set(RC) - set(Windex)
+        Eindex = RC - Windex
         return Sindex, Windex, Nindex, Eindex
 
     @staticmethod
@@ -297,9 +313,11 @@ class BridgeGame:
         if not self.bid_history:
             return True if new_bid[0] > 0 else False  # allow first normal bid
         if new_bid == BID_REDOUBLE:  # redouble
-            return self.last_penalty == PENALTY_DOUBLE and (self.current_player - self.last_normal_bidder) % 2 == 0
+            return self.last_normal_bidder != -1 and self.last_penalty == PENALTY_DOUBLE \
+                   and (self.current_player - self.last_normal_bidder) % 2 == 0
         if new_bid == BID_DOUBLE:  # double
-            return self.last_penalty == PENALTY_PASS and (self.current_player - self.last_normal_bidder) % 2 == 1
+            return self.last_normal_bidder != -1 and self.last_penalty == PENALTY_PASS \
+                   and (self.current_player - self.last_normal_bidder) % 2 == 1
         return BridgeGame.is_greater_bid(new_bid, self.last_normal_bid)  # normal bid
 
     def is_valid_play(self, new_play):
@@ -320,7 +338,7 @@ class BridgeGame:
     def is_done_bidding(self):
         if self.stage == STAGE_PLAYING:
             return True
-        if len(self.bid_history) < 3:
+        if len(self.bid_history) <= 3:
             return False
         return self.bid_history[-1] == self.bid_history[-2] == self.bid_history[-3] == BID_PASS
 
@@ -356,13 +374,18 @@ class BridgeGame:
         get the winner of the trick
         :param cards: list of 4 cards, first one being the lead
         :param trump: trump of the game
-        :return: the index of the winner
+        :return: the index of the winner in cards
         """
         assert len(cards) == 4, "need 4 cards per round"
         lead = cards[0]
         highest_card = max(cards, key=lambda a: BridgeGame.card_value_key(a, trump, lead[0]))
         return cards.index(highest_card)
 
-    def previous_trick_winner(self):
+    def last_trick_winner(self):
+        """
+        get the winner of the last four cards
+        Note: this function does not check if the last four cards are cards from the same trick in the game.
+        :return: the player that wins the last four cards
+        """
         return (self.get_trick_winner(self.play_history[-4:], self.contract[0][1])
                 + 1 + self.current_player) % 4

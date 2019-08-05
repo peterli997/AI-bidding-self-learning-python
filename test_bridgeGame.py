@@ -1,5 +1,5 @@
 from unittest import TestCase
-from bridge_game import BridgeGame
+from bridge_game import *
 BID_1C = (1, 1)
 BID_2C = (2, 1)
 BID_1D = (1, 2)
@@ -17,7 +17,7 @@ CONTRACT_INVALID = (BID_INVALID, -3)
 
 class TestBridgeGame(TestCase):
     def test_create_random_board(self):
-        self.fail()
+        pass
 
     def test_calculate_score(self):
         self.fail()
@@ -40,85 +40,85 @@ class TestBridgeGame(TestCase):
         # Do not fail
         # self.fail()
 
-    def test_bid_sequence(self, list):
-        special_bids = {BID_PASS, BID_REDOUBLE, BID_DOUBLE}
-        working_list = []
-        largest_bid = BID_PASS
-        last_bid_index = -1
-        for bid in list[:-1]:
-            self.assertTrue(BridgeGame.is_valid_bid(working_list, bid, largest_bid,
-                                                    last_bid_index),
-                            "prev bids: " + str(working_list) +
-                            " curr_bid: " + str(bid) +
-                            " last index: " + str(last_bid_index))
-            if bid not in special_bids:
-                largest_bid = bid
-                last_bid_index = len(working_list)
-            working_list.append(bid)
-        self.assertFalse(BridgeGame.is_valid_bid(working_list, list[-1], largest_bid, last_bid_index),
-                         str(working_list) + str(list[-1]))
+    def test_bid_sequence(self, bids, returns):
+        for pos in range(4):
+            working_list = []
+            test_game = BridgeGame([], VUL_NONE, pos)
+            for idx, bid in enumerate(bids):
+                result = test_game.bid(bid)
+                self.assertEqual(returns[idx], result,
+                                 "prev bids: " + str(working_list) +
+                                 " curr_bid: " + str(bid))
+                working_list.append(bid)
 
     def test_validate_bid(self):
         # 1C P 1D P 2C P 3D P 4D P P P P
         bid_list = [BID_1C, BID_1D, BID_PASS, BID_2C, BID_PASS, BID_PASS, BID_3D, BID_4D,
                     BID_PASS, BID_PASS, BID_PASS, BID_PASS]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED] * 10 + [RETURN_ACCEPTED_BIDDING_FINISHED, RETURN_REJECTED_STAGE_INCORRECT]
+        self.test_bid_sequence(bid_list, return_list)
 
         # 7NT 1C
         bid_list = [BID_7NT, BID_1C]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED, RETURN_REJECTED_INVALID_BID]
+        self.test_bid_sequence(bid_list, return_list)
 
         # P P P P
         bid_list = [BID_PASS, BID_PASS, BID_PASS, BID_PASS]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED] * 3 + [RETURN_ACCEPTED_ROUND_FINISHED]
+        self.test_bid_sequence(bid_list, return_list)
 
         # P P P 7NT
         bid_list = [BID_PASS, BID_PASS, BID_PASS, BID_7NT]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED] * 4
+        self.test_bid_sequence(bid_list, return_list)
 
         # P X
         bid_list = [BID_PASS, BID_DOUBLE]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED] + [RETURN_REJECTED_INVALID_BID]
+        self.test_bid_sequence(bid_list, return_list)
 
         # P XX
         bid_list = [BID_PASS, BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED] + [RETURN_REJECTED_INVALID_BID]
+        self.test_bid_sequence(bid_list, return_list)
 
         # X
         bid_list = [BID_DOUBLE]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_REJECTED_INVALID_BID]
+        self.test_bid_sequence(bid_list, return_list)
 
         # XX
         bid_list = [BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_REJECTED_INVALID_BID]
+        self.test_bid_sequence(bid_list, return_list)
 
         # P 7NT XX
         bid_list = [BID_PASS, BID_7NT, BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED] * 2 + [RETURN_REJECTED_INVALID_BID]
+        self.test_bid_sequence(bid_list, return_list)
 
         # P 7NT P X
         bid_list = [BID_PASS, BID_7NT, BID_PASS, BID_DOUBLE]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED] * 3 + [RETURN_REJECTED_INVALID_BID]
+        self.test_bid_sequence(bid_list, return_list)
 
         # P 7NT P P XX
         bid_list = [BID_PASS, BID_7NT, BID_PASS, BID_PASS, BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED] * 4 + [RETURN_REJECTED_INVALID_BID]
+        self.test_bid_sequence(bid_list, return_list)
 
         # P P 7NT X XX XX
         bid_list = [BID_PASS, BID_PASS, BID_7NT, BID_DOUBLE, BID_REDOUBLE, BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED] * 5 + [RETURN_REJECTED_INVALID_BID]
+        self.test_bid_sequence(bid_list, return_list)
 
         # P 1C X P P XX P P 2C P P X P XX
         bid_list = [BID_PASS, BID_1C, BID_DOUBLE, BID_PASS, BID_PASS, BID_REDOUBLE, BID_PASS, BID_PASS,
                     BID_2C, BID_PASS, BID_PASS, BID_DOUBLE, BID_PASS, BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
+        return_list = [RETURN_ACCEPTED] * 13 + [RETURN_REJECTED_INVALID_BID]
+        self.test_bid_sequence(bid_list, return_list)
 
-        # Don't fail
-        # self.fail()
-
-    def test_is_done_bidding(self):
-        self.assertTrue(BridgeGame.is_done_bidding([BID_REDOUBLE, BID_PASS, BID_PASS, BID_PASS]))
-        self.assertFalse(BridgeGame.is_done_bidding([BID_PASS, BID_PASS]))
         # Don't fail
         # self.fail()
 
