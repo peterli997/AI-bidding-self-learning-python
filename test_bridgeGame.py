@@ -1,18 +1,14 @@
 from unittest import TestCase
 from bridge_game import *
 
-class TestBridgeGame(TestCase):
 
-    def test_calculate_score(self):
-        self.assertTrue(BridgeGame.calculate_score(CONTRACT_PASS, POS_N, VUL_NONE, 0) == 0)
-        self.fail()
+class TestBridgeGame(TestCase):
 
     def test_is_greater_bid(self):
         # 1C, 2C
         self.assertTrue(BridgeGame.is_greater_bid(BID_2C, BID_1C))
         self.assertFalse(BridgeGame.is_greater_bid(BID_1C, BID_2C))
         self.assertFalse(BridgeGame.is_greater_bid(BID_1C, BID_1C))
-
         # 1D, 2C
         self.assertTrue(BridgeGame.is_greater_bid(BID_2C, BID_1D))
 
@@ -42,7 +38,7 @@ class TestBridgeGame(TestCase):
 
     def test_bidding(self):
         # 1C P 1D P 2C P 3D P 4D P P P (P)
-        bid_list = [BID_1C, BID_PASS, BID_1D, BID_PASS, BID_2C, BID_PASS,  BID_3D, BID_PASS, BID_4D,
+        bid_list = [BID_1C, BID_PASS, BID_1D, BID_PASS, BID_2C, BID_PASS, BID_3D, BID_PASS, BID_4D,
                     BID_PASS, BID_PASS, BID_PASS, BID_PASS]
         return_list = [RETURN_ACCEPTED] * 11 + [RETURN_ACCEPTED_BIDDING_FINISHED, RETURN_REJECTED_STAGE_INCORRECT]
         contract = CONTRACT_4D
@@ -50,10 +46,10 @@ class TestBridgeGame(TestCase):
         self.test_bid_sequence(bid_list, return_list, contract, declarer)
 
         # 7NT (1C) X P (X) (XX) P P
-        bid_list = [BID_7NT, BID_1C, BID_DOUBLE, BID_PASS, BID_DOUBLE, BID_REDOUBLE, BID_PASS ,
+        bid_list = [BID_7NT, BID_1C, BID_DOUBLE, BID_PASS, BID_DOUBLE, BID_REDOUBLE, BID_PASS,
                     BID_PASS]
         return_list = [RETURN_ACCEPTED, RETURN_REJECTED_INVALID_BID] + \
-                      [RETURN_ACCEPTED] * 2 + [RETURN_REJECTED_INVALID_BID] * 2+ [RETURN_ACCEPTED] + \
+                      [RETURN_ACCEPTED] * 2 + [RETURN_REJECTED_INVALID_BID] * 2 + [RETURN_ACCEPTED] + \
                       [RETURN_ACCEPTED_BIDDING_FINISHED]
         contract = CONTRACT_7NTX
         declarer = 0
@@ -102,69 +98,14 @@ class TestBridgeGame(TestCase):
         # Don't fail
         # self.fail()
 
-    def test_is_done_playing(self):
+    # TODO: implement this, test for play() and is_valid_play()
+    def test_play(self):
         self.fail()
 
-    def test_get_contract(self):
-        # 1C P 1D P 2C P 3D P 4D P P P P
-        bid_list = [BID_1C, BID_1D, BID_PASS, BID_2C, BID_PASS, BID_PASS, BID_3D, BID_4D,
-                    BID_PASS, BID_PASS, BID_PASS, BID_PASS]
-
-
-        # 7NT 1C
-        bid_list = [BID_7NT, BID_1C]
-        self.test_bid_sequence(bid_list)
-
-        # P P P P
-        bid_list = [BID_PASS, BID_PASS, BID_PASS, BID_PASS]
-        self.test_bid_sequence(bid_list)
-
-        # P P P 7NT
-        bid_list = [BID_PASS, BID_PASS, BID_PASS, BID_7NT]
-        self.test_bid_sequence(bid_list)
-
-        # P X
-        bid_list = [BID_PASS, BID_DOUBLE]
-        self.test_bid_sequence(bid_list)
-
-        # P XX
-        bid_list = [BID_PASS, BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
-
-        # X
-        bid_list = [BID_DOUBLE]
-        self.test_bid_sequence(bid_list)
-
-        # XX
-        bid_list = [BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
-
-        # P 7NT XX
-        bid_list = [BID_PASS, BID_7NT, BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
-
-        # P 7NT P X
-        bid_list = [BID_PASS, BID_7NT, BID_PASS, BID_DOUBLE]
-        self.test_bid_sequence(bid_list)
-
-        # P 7NT P P XX
-        bid_list = [BID_PASS, BID_7NT, BID_PASS, BID_PASS, BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
-
-        # P P 7NT X XX XX
-        bid_list = [BID_PASS, BID_PASS, BID_7NT, BID_DOUBLE, BID_REDOUBLE, BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
-
-        # P 1C X P P XX P P 2C P P X P XX
-        bid_list = [BID_PASS, BID_1C, BID_DOUBLE, BID_PASS, BID_PASS, BID_REDOUBLE, BID_PASS, BID_PASS,
-                    BID_2C, BID_PASS, BID_PASS, BID_DOUBLE, BID_PASS, BID_REDOUBLE]
-        self.test_bid_sequence(bid_list)
-
-        # Don't fail
-        # self.fail()
-
-    def test_card_value_key(self):
+    # TODO: implement this, test for get_score() and calculate_score()
+    def test_get_score(self):
         self.fail()
 
-    def test_get_trick_winner(self):
+    # TODO: implement this, test for last-trick_winner() and get_trick_winner()
+    def test_last_trick_winner(self):
         self.fail()

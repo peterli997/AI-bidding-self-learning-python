@@ -66,12 +66,18 @@ RETURN_ACCEPTED_ROUND_FINISHED = 2
 # SCORE
 SCORE_INVALID = -1
 
+
 class BridgeGame:
     """
     Class that simulates a game of bridge
     """
 
-    def __init__(self, hands, vulnerability, starting_pos):
+    def __init__(self, hands, vulnerability, starting_pos, total_tricks=None):
+        # meta data
+        if total_tricks is None:
+            self.total_tricks = len(hands[0])
+        else:
+            self.total_tricks = total_tricks
         # initialize a round of bridge
         self.vulnerability = vulnerability
         self.hands = hands  # order: NWSE
@@ -106,14 +112,8 @@ class BridgeGame:
         self.declarer_tricks = 0
         self.declarer_score = SCORE_INVALID
 
-
-
     def create_random_board(self):
-        self.hands = BridgeGame.random_board()
-
-    # TODO: remove if unecessary
-    def get_stage(self):
-        return self.stage
+        self.hands = BridgeGame.random_board(self.total_tricks)
 
     def player_inc(self):
         self.current_player = (self.current_player + 1) % 4
@@ -181,7 +181,7 @@ class BridgeGame:
                 self.declarer_tricks += 1
         else:
             self.player_inc()
-        if len(self.play_history) == 52:
+        if len(self.play_history) == self.total_tricks*4:
             self.stage = STAGE_FINISHED
             self.declarer_score = self.calculate_score(self.contract, self.declarer,
                                                        self.vulnerability, self.declarer_tricks)
@@ -291,14 +291,14 @@ class BridgeGame:
                 return ((self.last_normal_bidder - self.dealer) % 2 + ind * 2 + self.dealer) % 4
 
     @staticmethod
-    def random_board():
+    def random_board(num_tricks):
         import numpy as np
-        RC = set(range(52))
-        Nindex = set(np.random.choice(a=RC, size=13, replace=False))
+        RC = set(range(num_tricks * 4))
+        Nindex = set(np.random.choice(a=RC, size=num_tricks, replace=False))
         RC = RC - Nindex
-        Sindex = set(np.random.choice(a=RC, size=13, replace=False))
+        Sindex = set(np.random.choice(a=RC, size=num_tricks, replace=False))
         RC = RC - Sindex
-        Windex = set(np.random.choice(a=RC, size=13, replace=False))
+        Windex = set(np.random.choice(a=RC, size=num_tricks, replace=False))
         Eindex = RC - Windex
         return Sindex, Windex, Nindex, Eindex
 
@@ -354,14 +354,7 @@ class BridgeGame:
         return self.bid_history[-1] == self.bid_history[-2] == self.bid_history[-3] == BID_PASS
 
     def is_done_playing(self):
-        return len(self.play_history) == 52
-
-    def get_contract(self):
-        assert self.is_done_bidding(), "Need to be done bidding"
-        return self.contract
-
-    def get_result(self):
-        return 0
+        return len(self.play_history) == self.total_tricks * 4
 
     @staticmethod
     def card_value_key(card, trump, lead_suit):
