@@ -15,6 +15,11 @@ Positions: N:0, W:1, S:2, E:3
 # BIDS
 BID_1C = (1, 1)
 BID_2C = (2, 1)
+BID_3C = (3, 1)
+BID_4C = (4, 1)
+BID_5C = (5, 1)
+BID_6C = (6, 1)
+BID_7C = (7, 1)
 BID_1D = (1, 2)
 BID_1H = (1, 3)
 BID_2NT = (2, 5)
@@ -26,6 +31,11 @@ BID_DOUBLE = (-1,)
 BID_REDOUBLE = (-2,)
 BID_INVALID = (-3,)
 # CONTRACTS
+CONTRACT_2CX = ((2, 1), -1)
+CONTRACT_4D = ((4, 2), 0)
+CONTRACT_7C = ((7, 1), 0)
+CONTRACT_7NTX = ((7, 5), -1)
+CONTRACT_7NTXX = ((7, 5), -2)
 CONTRACT_PASS = ((0,), 0)
 CONTRACT_INVALID = (BID_INVALID, -3)
 # PENALTIES
@@ -53,7 +63,8 @@ RETURN_REJECTED_INVALID_PLAY = -1
 RETURN_ACCEPTED = 0
 RETURN_ACCEPTED_BIDDING_FINISHED = 1
 RETURN_ACCEPTED_ROUND_FINISHED = 2
-
+# SCORE
+SCORE_INVALID = -1
 
 class BridgeGame:
     """
@@ -80,7 +91,7 @@ class BridgeGame:
         self.play_history = []
         self.declarer_tricks = 0  #
         # Result
-        self.declarer_score = -1
+        self.declarer_score = SCORE_INVALID
 
     def reset_round(self):
         self.hands = self.hands_bac
@@ -93,7 +104,7 @@ class BridgeGame:
         self.declarer = POS_N
         self.play_history = []
         self.declarer_tricks = 0
-        self.declarer_score = -1
+        self.declarer_score = SCORE_INVALID
 
 
 
@@ -109,7 +120,7 @@ class BridgeGame:
 
     def bid(self, new_bid):
         """
-        Place a new bid during bidding stage.
+        Place a new bid during bidding stage. Skips invalid bids.
         :param new_bid: the new bid to be bid
         :return: RETURN_REJECTED_STAGE_INCORRECT if not in the correct stage,
                  RETURN_REJECTED_INVALID_BID if bid is not valid
@@ -148,7 +159,7 @@ class BridgeGame:
 
     def play(self, new_play):
         """
-        Play a new card during playing stage.
+        Play a new card during playing stage. Skips invalid plays.
         :param new_play: the new card to be played
         :return: RETURN_REJECTED_STAGE_INCORRECT if play not in the correct stage
                  RETURN_REJECTED_INVALID_BID if play is not valid,
@@ -180,10 +191,10 @@ class BridgeGame:
     def get_score(self, position):
         if self.stage != STAGE_FINISHED:
             return RETURN_REJECTED_STAGE_INCORRECT
-        if self.declarer_score == -1000000:
+        if self.declarer_score == SCORE_INVALID:
             self.declarer_score = self.calculate_score(self.contract, self.declarer,
                                                        self.vulnerability, self.declarer_tricks)
-        if position == self.declarer:
+        if (position - self.declarer) % 2 == 0:
             return self.declarer_score
         else:
             return -self.declarer_score
@@ -277,7 +288,7 @@ class BridgeGame:
         target_trump = self.last_normal_bid[1]
         for ind, bid in enumerate(self.bid_history[(self.last_normal_bidder - self.dealer) % 2::2]):
             if bid[0] > 0 and bid[1] == target_trump:
-                return (ind + self.dealer) % 4
+                return ((self.last_normal_bidder - self.dealer) % 2 + ind * 2 + self.dealer) % 4
 
     @staticmethod
     def random_board():
