@@ -1,6 +1,6 @@
 from unittest import TestCase
 from bridge_game import *
-
+from bridge_constants import *
 
 class TestBridgeGame(TestCase):
 
