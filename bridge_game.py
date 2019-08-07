@@ -1,7 +1,7 @@
 
 # Suit = ['C', 'D', 'H', 'S']
 # Rank = ['2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14']
-# Position = ['N', 'W', 'S', 'E']
+# Position = ['N', 'E', 'S', 'W']
 """
 Hands: set of cards
 Cards: (suit, rank)
@@ -48,9 +48,9 @@ STAGE_PLAYING = 1
 STAGE_FINISHED = 2
 # POSITIONS
 POS_N = 0
-POS_W = 1
+POS_E = 1
 POS_S = 2
-POS_E = 3
+POS_W = 3
 # VULNERABILITY
 VUL_NONE = 0
 VUL_EW = 1
@@ -295,12 +295,24 @@ class BridgeGame:
         import numpy as np
         RC = set(range(num_tricks * 4))
         Nindex = set(np.random.choice(a=RC, size=num_tricks, replace=False))
+        N = set()
+        for i in Nindex:
+            N.add((i // 13, i % 13))
         RC = RC - Nindex
         Sindex = set(np.random.choice(a=RC, size=num_tricks, replace=False))
+        S = set()
+        for i in Sindex:
+            S.add((i // 13, i % 13))
         RC = RC - Sindex
         Windex = set(np.random.choice(a=RC, size=num_tricks, replace=False))
+        W = set()
+        for i in Windex:
+            W.add((i // 13, i % 13))
         Eindex = RC - Windex
-        return Sindex, Windex, Nindex, Eindex
+        E = set()
+        for i in Eindex:
+            E.add((i // 13, i % 13))
+        return N, E, S, W
 
     @staticmethod
     def is_greater_bid(bid0, bid1):
