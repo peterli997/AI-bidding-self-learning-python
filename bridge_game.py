@@ -55,13 +55,13 @@ class BridgeGame:
     def __init__(self, hands, vulnerability, starting_pos, total_tricks=None):
         # meta data
         if total_tricks is None:
-            self.total_tricks = len(hands[0])
+            self.total_tricks = len(hands[0]) if len(hands[0]) != 0 else 13
         else:
             self.total_tricks = total_tricks
         # initialize a round of bridge
         self.vulnerability = vulnerability
-        self.hands = hands  # order: NWSE
-        self.hands_bac = [[c for c in d] for d in hands]
+        self.hands_bac = [[c for c in d] for d in hands]  # order: NWSE
+        self.hands = [[c for c in d] for d in hands]
         self.dealer = starting_pos
         self.current_player = self.dealer
         # Round stage, can be STAGE_BIDDING, STAGE_PLAYING, STAGE_FINISHED
@@ -128,7 +128,7 @@ class BridgeGame:
             self.contract = self.last_normal_bid, self.last_penalty
             if self.contract != CONTRACT_PASS:
                 self.declarer = self.calc_declarer()
-                self.current_player = self.declarer
+                self.current_player = (self.declarer - 1) % 4
                 return RETURN_ACCEPTED_BIDDING_FINISHED
             else:
                 self.stage = STAGE_FINISHED
@@ -146,7 +146,6 @@ class BridgeGame:
                  RETURN_ACCEPTED if bid is accepted
                  RETURN_ACCEPTED_ROUND_FINISHED if bid is accepted and playing stage is finished
         """
-        assert self.stage == STAGE_PLAYING, "should be in playing stage"
         # check if bid is valid
         if self.stage != STAGE_PLAYING:
             return RETURN_REJECTED_STAGE_INCORRECT
@@ -329,14 +328,18 @@ class BridgeGame:
         :param new_play: the new bid to be checked
         :return: if the new bid is valid
         """
-        if new_play not in self.hands[self.current_player]:  # the player should have the card
+        # the player should have the card
+        if new_play not in self.hands[self.current_player]:
             return False
+        # first card played in the round is valid
         if len(self.play_history) % 4 == 0:
             return True
+        # card following the suit is valid
         leading_suit = self.play_history[len(self.play_history) // 4 * 4][0]
         if new_play[0] == leading_suit:
             return True
-        return len(set(filter(lambda x: x[0] == leading_suit, self.hands[self.current_player])))
+        # can play other suit if leading suit is void in this hand
+        return len(set(filter(lambda x: x[0] == leading_suit, self.hands[self.current_player]))) == 0
 
     def is_done_bidding(self):
         if self.stage == STAGE_PLAYING:

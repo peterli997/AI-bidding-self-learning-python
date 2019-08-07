@@ -98,7 +98,6 @@ class TestBridgeGame(TestCase):
         # Don't fail
         # self.fail()
 
-    # TODO: implement this, test for play() and is_valid_play()
     def test_is_valid_play(self):
         N = {(2, 0), (1, 0)}
         E = {(2, 12), (1, 12)}
@@ -111,6 +110,7 @@ class TestBridgeGame(TestCase):
         self.assertTrue(board.is_valid_play((2, 0)))
         self.assertFalse(board.is_valid_play((1, 12)))
         self.assertFalse(board.is_valid_play((3, 0)))
+        self.assertFalse(board.is_valid_play((3, 5)))
 
         board.play((1, 0))
         self.assertTrue(board.is_valid_play((1, 12)))
@@ -121,22 +121,70 @@ class TestBridgeGame(TestCase):
         self.assertTrue(board.is_valid_play((3, 0)))
         self.assertTrue(board.is_valid_play((4, 0)))
 
-    def test_play(self, hands, vulnerability, starting_pos):
-        board = BridgeGame(hands, vulnerability, starting_pos)
-        board.stage = 0
-        assert board.play(hands[0][0]) == RETURN_REJECTED_STAGE_INCORRECT
+    def test_play_sequence(self, hands, trump, opening_leader, plays, returns, final_history, cur_players, declarer_trick):
+        board = BridgeGame(hands, vulnerability=0, starting_pos=opening_leader)
+        board.declarer = (opening_leader + 1) % 4
         board.stage = 1
-        for i in hands[0]:
-            board.is_valid_play(i)
-        i = int(len(hands[0])/2)
-        board.play(i)
-        for j in hands[1]:
-            board.is_valid_play(j)
+        board.contract = ((4, trump), 0)
+        for play, returned, cur_player in zip(plays, returns, cur_players):
+            self.assertEqual(returned, board.play(play), board.play_history)
+            if not board.is_done_playing():
+                self.assertEqual(cur_player, board.current_player, board.play_history)
+        self.assertEqual(final_history, board.play_history)
+        self.assertEqual(declarer_trick, board.declarer_tricks)
 
+    def test_play(self):
+        N = {D2, C2}
+        E = {DA, CA}
+        S = {H2, S2}
+        W = {SA, HA}
+        hands = [N, E, S, W]
+        board = BridgeGame(hands, vulnerability=0, starting_pos=0)
+        board.stage = 0
+        self.assertEqual(RETURN_REJECTED_STAGE_INCORRECT, board.play((2, 0)))
+
+        # no trump (SK) D2 (CA) DA H2 HA (C2) (H2) (SA) CA (H2) S2 SA C2 (D2)
+        opening_leader = 0
+        trump = 5
+        plays = [SK, D2, CA, DA, H2, HA, C2, H2, SA, CA, H2, S2, SA, C2, D2]
+        returns = [RETURN_REJECTED_INVALID_PLAY, RETURN_ACCEPTED, RETURN_REJECTED_INVALID_BID] + \
+            [RETURN_ACCEPTED] * 3 + [RETURN_REJECTED_INVALID_PLAY] * 3 + [RETURN_ACCEPTED] + \
+            [RETURN_REJECTED_INVALID_PLAY] + [RETURN_ACCEPTED] * 2 + [RETURN_ACCEPTED_ROUND_FINISHED] + \
+            [RETURN_REJECTED_STAGE_INCORRECT]
+        final_history = [D2, DA, H2, HA, CA, S2, SA, C2]
+        cur_players = [0, 1, 1, 2, 3, 1, 1, 1, 1, 2, 2, 3, 0, 1, 1]
+        declarer_trick = 2
+        self.test_play_sequence(hands, trump, opening_leader, plays, returns, final_history, cur_players, declarer_trick)
+
+        # trump spade DA H2 HA D2 CA S2 SK SA
+        N = {D2, SA}
+        E = {DA, CA}
+        S = {H2, S2}
+        W = {SK, HA}
+        hands = [N, E, S, W]
+        opening_leader = 1
+        trump = 4
+        plays = [DA, H2, HA, D2, CA, S2, SK, SA]
+        returns = [RETURN_ACCEPTED] * 7 + [RETURN_ACCEPTED_ROUND_FINISHED]
+        final_history = [DA, H2, HA, D2, CA, S2, SK, SA]
+        cur_players = [2, 3, 0, 1, 2, 3, 0, 0]
+        declarer_trick = 1
+        self.test_play_sequence(hands, trump, opening_leader, plays, returns, final_history, cur_players, declarer_trick)
+
+        # trump spade CA H2 HA SA D2 DA S2 SK
+        opening_leader = 1
+        trump = 4
+        plays = [CA, H2, HA, SA, D2, DA, S2, SK]
+        returns = [RETURN_ACCEPTED] * 7 + [RETURN_ACCEPTED_ROUND_FINISHED]
+        final_history = [CA, H2, HA, SA, D2, DA, S2, SK]
+        cur_players = [2, 3, 0, 0, 1, 2, 3, 3]
+        declarer_trick = 1
+        self.test_play_sequence(hands, trump, opening_leader, plays, returns, final_history, cur_players,
+                                declarer_trick)
         # Don't fail
         # self.fail()
 
-    # TODO: implement this, test for get_score() and calculate_score()
+    # TODO: pass this test
     def test_get_score(self, hands, vulnerability, starting_pos):
         board = BridgeGame(hands, vulnerability, starting_pos)
         board.stage = 0
@@ -150,6 +198,7 @@ class TestBridgeGame(TestCase):
         # Don't fail
         # self.fail()
 
+    # TODO: pass this test
     def test_calculate_score(self):
         contract = CONTRACT_4D
         vulnerability = VUL_NONE
@@ -193,38 +242,3 @@ class TestBridgeGame(TestCase):
 
         result = 0
         self.assertEqual(BridgeGame.calculate_score(contract, declarer, vulnerability, result), -7600)
-
-    # TODO: implement this, test for last-trick_winner() and get_trick_winner()
-    def test_last_trick_winner(self):
-        cards = [(1, 0), (2, 0), (3, 0), (4, 0)]
-        trump = 5
-        self.test_get_trick_winner(cards, trump)
-
-        trump = 1
-        self.test_get_trick_winner(cards, trump)
-
-        trump = 4
-        self.test_get_trick_winner(cards, trump)
-
-        cards = [(1, 5), (1, 3), (1, 7), (2, 4)]
-        trump = 5
-        self.test_get_trick_winner(cards, trump)
-
-        trump = 1
-        self.test_get_trick_winner(cards, trump)
-
-        trump = 2
-        self.test_get_trick_winner(cards, trump)
-        # Don't fail
-        # self.fail()
-
-    def test_get_trick_winner(self, cards, trump):
-        assert len(cards) == 4
-        lead = cards[0]
-        if len(cards, key = lambda a: a // 13 == trump - 1):
-            highest_card = max(cards, key = lambda a: a // 13 == trump - 1)
-        else:
-            highest_card = max(cards, key = lambda a: a // 13 == lead // 13)
-        winner = cards.index(highest_card)
-        self.assertEqual(winner, BridgeGame.get_trick_winner(cards, trump))
-
