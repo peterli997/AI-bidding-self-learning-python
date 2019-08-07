@@ -184,21 +184,25 @@ class TestBridgeGame(TestCase):
         # Don't fail
         # self.fail()
 
-    # TODO: pass this test
-    def test_get_score(self, hands, vulnerability, starting_pos):
-        board = BridgeGame(hands, vulnerability, starting_pos)
+    def test_get_score(self):
+        board = BridgeGame([[]], VUL_NONE, 0)
+        board.contract = CONTRACT_4D
+        board.declarer = POS_N
+        board.declarer_tricks = 10
         board.stage = 0
         for i in range(4):
-            assert board.get_score(i) == RETURN_REJECTED_STAGE_INCORRECT
+            self.assertEqual(RETURN_REJECTED_STAGE_INCORRECT, board.get_score(i))
         board.stage = 1
         for i in range(4):
-            assert board.get_score(i) == RETURN_REJECTED_STAGE_INCORRECT
+            self.assertEqual(RETURN_REJECTED_STAGE_INCORRECT, board.get_score(i))
         board.stage = 2
-        assert board.get_score(board.declarer) == board.calculate_score(board.contract, board.declarer, vulnerability, board.result)
+        self.assertEqual(130, board.get_score(POS_N))
+        self.assertEqual(130, board.get_score(POS_S))
+        self.assertEqual(-130, board.get_score(POS_E))
+        self.assertEqual(-130, board.get_score(POS_W))
         # Don't fail
         # self.fail()
 
-    # TODO: pass this test
     def test_calculate_score(self):
         contract = CONTRACT_4D
         vulnerability = VUL_NONE
@@ -211,7 +215,7 @@ class TestBridgeGame(TestCase):
 
         declarer = POS_W
         self.assertEqual(BridgeGame.calculate_score(contract, declarer, vulnerability, result), 150)
-        self.assertEqual(BridgeGame.get_score(POS_N), -150)
+        # self.assertEqual(BridgeGame.get_score(POS_N), -150)
 
         result = 9
         self.assertEqual(BridgeGame.calculate_score(contract, declarer, vulnerability, result), -50)

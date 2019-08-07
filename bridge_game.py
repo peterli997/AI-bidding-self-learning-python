@@ -189,19 +189,18 @@ class BridgeGame:
         :return: score for declarer
         """
         doubling = contract[1]
-        contract_bid = contract[0]
-        contract_trump = contract_bid[1]
-        contract_level = contract_bid[0]
+        contract_trump = contract[0][1]
+        contract_level = contract[0][0]
         vul = ((declarer == POS_N or declarer == POS_S) and (vulnerability == VUL_NS or vulnerability == VUL_ALL)) or \
-              ((declarer == POS_E and declarer == POS_W) and (vulnerability == VUL_EW or vulnerability == VUL_ALL))
+              ((declarer == POS_E or declarer == POS_W) and (vulnerability == VUL_EW or vulnerability == VUL_ALL))
         if contract_level + 6 > result:
             if not vul:
-                if doubling == BID_REDOUBLE:
+                if doubling == PENALTY_REDOUBLE:
                     if contract_level - result <= -4:
                         return 200 - 400 * (contract_level + 6 - result)
                     else:
                         return 800 - 600 * (contract_level + 6 - result)
-                elif doubling == BID_DOUBLE:
+                elif doubling == PENALTY_DOUBLE:
                     if contract_level - result <= 8:
                         return 100 - 200 * (contract_level + 6 - result)
                     else:
@@ -209,9 +208,9 @@ class BridgeGame:
                 else:
                     return -50 * (contract_level + 6 - result)
             else:
-                if doubling == BID_REDOUBLE:
+                if doubling == PENALTY_REDOUBLE:
                     return 200 - 600 * (contract_level + 6 - result)
-                elif doubling == BID_DOUBLE:
+                elif doubling == PENALTY_DOUBLE:
                     return 100 - 300 * (contract_level + 6 - result)
                 else:
                     return -100 * (contract_level + 6 - result)
@@ -223,14 +222,14 @@ class BridgeGame:
                 contract_score = contract_level * 30
             else:
                 contract_score = 10 + contract_level * 30
-            if doubling == BID_REDOUBLE:
+            if doubling == PENALTY_REDOUBLE:
                 contract_score *= 4
                 score += 100
                 if vul:
                     score += 400 * (result - contract_level - 6)
                 else:
                     score += 200 * (result - contract_level - 6)
-            elif doubling == BID_DOUBLE:
+            elif doubling == PENALTY_DOUBLE:
                 contract_score *= 2
                 score += 50
                 if vul:
