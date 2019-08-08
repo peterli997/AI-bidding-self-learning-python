@@ -1,8 +1,7 @@
 import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
-
-
+from contract_bridge.bridge_game import *
 
 
 class BridgeEnv(gym.Env):
