@@ -40,11 +40,12 @@ class SuitLink:
         else:
             compressed_link = list(filter(lambda x: x != -1, link))
             self.cache_hash = self.hashing(compressed_link)
-        if self.cache_hash in COLLISION_DETECTOR:
-            if self.compressed_link != COLLISION_DETECTOR[self.cache_hash]:
-                print(self.cache_hash, self.compressed_link, COLLISION_DETECTOR[self.cache_hash])
-                quit()
-        COLLISION_DETECTOR[self.cache_hash] = self.compressed_link
+        if DEBUG:
+            if self.cache_hash in COLLISION_DETECTOR:
+                if self.compressed_link != COLLISION_DETECTOR[self.cache_hash]:
+                    print(self.cache_hash, self.compressed_link, COLLISION_DETECTOR[self.cache_hash])
+                    quit()
+            COLLISION_DETECTOR[self.cache_hash] = self.compressed_link
 
     def __str__(self):
         return str(self.compressed_link) if DETAILED_LINK_OBJ else str(self.cache_hash)

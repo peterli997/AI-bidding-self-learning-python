@@ -47,19 +47,18 @@ PENALTY_REDOUBLE = -2
 PENALTY_PASS = 0
 # SCORE
 SCORE_INVALID = -1
-
+# for testing 
+TOTAL_TRICKS = 13
 
 class BridgeGame:
     """
     Class that simulates a game of bridge
     """
 
-    def __init__(self, hands, vulnerability, starting_pos, total_tricks=None):
+    def __init__(self, hands, vulnerability, starting_pos):
         # meta data
-        if total_tricks is None:
-            self.total_tricks = len(hands[0]) if len(hands[0]) != 0 else 13
-        else:
-            self.total_tricks = total_tricks
+        global TOTAL_TRICKS
+        TOTAL_TRICKS = len(hands[0]) if len(hands[0]) != 0 else 13
         # initialize a round of bridge
         self.vulnerability = vulnerability
         self.hands_bac = [[c for c in d] for d in hands]  # order: NWSE
@@ -94,8 +93,20 @@ class BridgeGame:
         self.declarer_tricks = 0
         self.declarer_score = SCORE_INVALID
 
+    @property
+    def hands(self):
+        return [[c for c in d] for d in self.hands]
+
+    @hands.setter
+    def hands(self, hands):
+        global TOTAL_TRICKS
+        self.hands = [[c for c in d] for d in hands]
+        self.hands_bac = [[c for c in d] for d in hands]
+        TOTAL_TRICKS = len(hands[0]) if len(hands[0]) != 0 else 13
+
     def create_random_board(self):
-        self.hands = BridgeGame.random_board(self.total_tricks)
+        self.hands = BridgeGame.random_board()
+        self.hands_bac = [[c for c in d] for d in self.hands]
 
     def player_inc(self):
         self.current_player = (self.current_player + 1) % 4
@@ -162,7 +173,7 @@ class BridgeGame:
                 self.declarer_tricks += 1
         else:
             self.player_inc()
-        if len(self.play_history) == self.total_tricks*4:
+        if len(self.play_history) == TOTAL_TRICKS*4:
             self.stage = STAGE_FINISHED
             self.declarer_score = self.calculate_score(self.contract, self.declarer,
                                                        self.vulnerability, self.declarer_tricks)
@@ -271,20 +282,20 @@ class BridgeGame:
                 return ((self.last_normal_bidder - self.dealer) % 2 + ind * 2 + self.dealer) % 4
 
     @staticmethod
-    def random_board(num_tricks):
+    def random_board():
         import numpy as np
-        RC = set(range(num_tricks * 4))
-        Nindex = set(np.random.choice(a=RC, size=num_tricks, replace=False))
+        RC = set(range(TOTAL_TRICKS * 4))
+        Nindex = set(np.random.choice(a=RC, size=TOTAL_TRICKS, replace=False))
         N = set()
         for i in Nindex:
             N.add((i // 13, i % 13))
         RC = RC - Nindex
-        Sindex = set(np.random.choice(a=RC, size=num_tricks, replace=False))
+        Sindex = set(np.random.choice(a=RC, size=TOTAL_TRICKS, replace=False))
         S = set()
         for i in Sindex:
             S.add((i // 13, i % 13))
         RC = RC - Sindex
-        Windex = set(np.random.choice(a=RC, size=num_tricks, replace=False))
+        Windex = set(np.random.choice(a=RC, size=TOTAL_TRICKS, replace=False))
         W = set()
         for i in Windex:
             W.add((i // 13, i % 13))
@@ -350,7 +361,7 @@ class BridgeGame:
         return self.bid_history[-1] == self.bid_history[-2] == self.bid_history[-3] == BID_PASS
 
     def is_done_playing(self):
-        return len(self.play_history) == self.total_tricks * 4
+        return len(self.play_history) == TOTAL_TRICKS * 4
 
     @staticmethod
     def card_value_key(card, trump, lead_suit):
