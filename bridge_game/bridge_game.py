@@ -47,6 +47,8 @@ PENALTY_REDOUBLE = -2
 PENALTY_PASS = 0
 # SCORE
 SCORE_INVALID = -1
+
+
 class BridgeGame:
     """
     Class that simulates a game of bridge

@@ -1,6 +1,5 @@
 from unittest import TestCase
-from bridge_game import *
-from bridge_constants import *
+from bridge_game.bridge_constants import *
 
 class TestBridgeGame(TestCase):
 
@@ -215,7 +214,6 @@ class TestBridgeGame(TestCase):
 
         declarer = POS_W
         self.assertEqual(BridgeGame.calculate_score(contract, declarer, vulnerability, result), 150)
-        # self.assertEqual(BridgeGame.get_score(POS_N), -150)
 
         result = 9
         self.assertEqual(BridgeGame.calculate_score(contract, declarer, vulnerability, result), -50)
