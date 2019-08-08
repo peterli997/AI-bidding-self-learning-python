@@ -1,14 +1,18 @@
 Suit: Spade, Heart, Diamond, Club in Card
-Trump: NoTrump, Spade, Heart, Diamond Club (in descending value) in Bid/Contract
+Trump: NoTrump, Spade, Heart, Diamond, Club (in descending value) in Bid/Contract
 Rank: AKQJT98765432 (in descending value) in Card
+Level: 1-7 in Bids
 Card: CARD!
 Round: One game consists of Bidding and Playing Stages
 Stage: Bidding / Playing
 Position: North, West, South, East
-Bid: 1C~7NT, X, XX, PASS
+Bid: 1C-7NT, X, XX, PASS
+Penalty: Pass, X, XX
 Vulnerability: NONE, EW, NS, ALL
 Contract: final contract + vulnerability
 Result: -7~+7
 Level: 1-7 in Bid and Contract
 Board: The card distribution
+Dealer: The first player to bid
+Declarer: In the playing stage, the player playing the contract
 Play: A play is the process of playing a card during the playing stage.
