@@ -36,6 +36,7 @@ POS_N = 0
 POS_E = 1
 POS_S = 2
 POS_W = 3
+POS_INVALID = -1
 # VULNERABILITY
 VUL_NONE = 0
 VUL_EW = 1
@@ -61,8 +62,7 @@ class BridgeGame:
         TOTAL_TRICKS = len(hands[0]) if len(hands[0]) != 0 else 13
         # initialize a round of bridge
         self.vulnerability = vulnerability
-        self.hands_bac = [[c for c in d] for d in hands]  # order: NWSE
-        self.hands = [[c for c in d] for d in hands]
+        self.hands = hands
         self.dealer = starting_pos
         self.current_player = self.dealer
         # Round stage, can be STAGE_BIDDING, STAGE_PLAYING, STAGE_FINISHED
@@ -74,7 +74,7 @@ class BridgeGame:
         self.last_penalty = PENALTY_PASS  #
         # Playing
         self.contract = CONTRACT_INVALID  #
-        self.declarer = POS_N  #
+        self.declarer = POS_INVALID  #
         self.play_history = []
         self.declarer_tricks = 0  #
         # Result
@@ -88,25 +88,24 @@ class BridgeGame:
         self.last_normal_bidder = -1
         self.last_penalty = PENALTY_PASS
         self.contract = CONTRACT_INVALID
-        self.declarer = POS_N
+        self.declarer = POS_INVALID
         self.play_history = []
         self.declarer_tricks = 0
         self.declarer_score = SCORE_INVALID
 
     @property
     def hands(self):
-        return [[c for c in d] for d in self.hands]
+        return self._hands
 
     @hands.setter
     def hands(self, hands):
         global TOTAL_TRICKS
-        self.hands = [[c for c in d] for d in hands]
+        self._hands = [[c for c in d] for d in hands]
         self.hands_bac = [[c for c in d] for d in hands]
         TOTAL_TRICKS = len(hands[0]) if len(hands[0]) != 0 else 13
 
     def create_random_board(self):
         self.hands = BridgeGame.random_board()
-        self.hands_bac = [[c for c in d] for d in self.hands]
 
     def player_inc(self):
         self.current_player = (self.current_player + 1) % 4
@@ -400,3 +399,15 @@ class BridgeGame:
         """
         return (self.get_trick_winner(self.play_history[-4:], self.contract[0][1])
                 + 1 + self.current_player) % 4
+
+    def step(self, action):
+        """
+        Make a move, either a play or a bid
+        :param action: play or bid to be used
+        """
+        if self.stage == STAGE_BIDDING:
+            self.bid(action)
+        elif self.stage == STAGE_PLAYING:
+            self.play(action)
+        elif self.stage == STAGE_FINISHED:
+            raise Exception('This round is over.')

@@ -3,7 +3,7 @@ from gym import error, spaces, utils
 from gym.utils import seeding
 
 
-class BridgeOnlyBiddingEnv(gym.Env):
+class DuplicateBridgeBiddingOnlyEnv(gym.Env):
     metadata = {'render.modes': ['human']}
 
     def __init__(self):
